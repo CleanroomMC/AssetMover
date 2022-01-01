@@ -1,0 +1,16 @@
+[
+{
+  "modid": "assetmover",
+  "name": "AssetMover",
+  "description": "Allows acquiring of vanilla/mod assets at runtime without potentially violating licenses.",
+  "version": "${version}",
+  "mcversion": "${mcversion}",
+  "url": "",
+  "updateUrl": "",
+  "authorList": ["CleanroomMC"],
+  "credits": "Rongmario",
+  "logoFile": "",
+  "screenshots": [],
+  "dependencies": []
+}
+]
