@@ -1,5 +1,7 @@
 package io.github.cleanroommc.assetmover;
 
+import com.google.common.collect.Multimap;
+import com.google.common.collect.MultimapBuilder;
 import com.google.common.util.concurrent.ListenableFuture;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
@@ -8,6 +10,7 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.discovery.ASMDataTable;
 import net.minecraftforge.fml.common.event.FMLConstructionEvent;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -16,11 +19,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URLConnection;
-import java.nio.file.FileSystem;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
+import java.nio.file.*;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 @Mod(modid = AssetMover.MODID, name = AssetMover.NAME, version = AssetMover.VERSION)
 public class AssetMover {
@@ -36,7 +39,7 @@ public class AssetMover {
     public void construct(FMLConstructionEvent event) {
         Map<String, ListenableFuture<File>> minecraftVersions = new Object2ObjectOpenHashMap<>();
         Set<String> mods = new ObjectOpenHashSet<>();
-        Map<File, List<String>> assetRequesters = new Object2ObjectOpenHashMap<>();
+        Map<String, List<Pair<File, List<String>>>> assetRequesters = new Object2ObjectOpenHashMap<>();
         for (ASMDataTable.ASMData asmData : event.getASMHarvestedData().getAll(RequestAsset.class.getName())) {
             List<String> data = new ArrayList<>();
             File file = asmData.getCandidate().getModContainer();
@@ -52,13 +55,15 @@ public class AssetMover {
             if (!data.isEmpty()) {
                 String minecraftVersion = (String) asmData.getAnnotationInfo().get("minecraftVersion");
                 if (!minecraftVersion.isEmpty() && !minecraftVersions.containsKey(minecraftVersion)) {
-                    minecraftVersions.put(minecraftVersion, (ListenableFuture<File>) HttpUtil.DOWNLOADER_EXECUTOR.submit(() -> {
+                    minecraftVersions.put(minecraftVersion, HttpUtil.DOWNLOADER_EXECUTOR.submit(() -> {
                         try {
                             MinecraftVersion minecraftVersionObject = MinecraftVersion.grab(minecraftVersion);
                             URLConnection conn = minecraftVersionObject.getURL().openConnection();
                             if (conn.getContentLengthLong() == minecraftVersionObject.getSize()) {
                                 try (InputStream is = conn.getInputStream()) {
-                                    Files.copy(is, Files.createTempFile("client-" + minecraftVersion, ".jar"), StandardCopyOption.REPLACE_EXISTING);
+                                    Path temp = Files.createTempFile("client-" + minecraftVersion, ".jar");
+                                    Files.copy(is, temp, StandardCopyOption.REPLACE_EXISTING);
+                                    return temp.toFile();
                                 } catch (Throwable t) {
                                     t.printStackTrace();
                                     try {
@@ -73,15 +78,34 @@ public class AssetMover {
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
+                        return null;
                     }));
                 }
                 String modURL = (String) asmData.getAnnotationInfo().get("modURL");
                 if (!modURL.isEmpty()) {
                     mods.add(modURL);
                 }
-                assetRequesters.computeIfAbsent(file, k -> new ArrayList<>()).addAll(data);
+                assetRequesters.computeIfAbsent(minecraftVersion, k -> new ArrayList<>()).add(Pair.of(file, data));
             }
         }
+        minecraftVersions.forEach((s, lf) -> assetRequesters.get(s).forEach(pair -> {
+            try (FileSystem modFs = FileSystems.newFileSystem(pair.getLeft().toURI(), Collections.emptyMap())) {
+                try {
+                    File file = lf.get(2, TimeUnit.MINUTES);
+                    try (FileSystem assetFs = FileSystems.newFileSystem(file.toURI(), Collections.emptyMap())) {
+                        for (String data : pair.getRight()) {
+                            Files.move(modFs.getPath(data), assetFs.getPath(data), StandardCopyOption.REPLACE_EXISTING);
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                } catch (ExecutionException | InterruptedException | TimeoutException e) {
+                    e.printStackTrace();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }));
     }
 
 }
