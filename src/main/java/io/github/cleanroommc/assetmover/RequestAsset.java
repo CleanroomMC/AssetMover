@@ -2,7 +2,7 @@ package io.github.cleanroommc.assetmover;
 
 public @interface RequestAsset {
 
-    String minecraftVersion() default "";
+    MinecraftVersion minecraftVersion() default MinecraftVersion.NIL;
 
     String modURL() default "";
 

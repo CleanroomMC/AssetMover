@@ -1,7 +1,5 @@
 package io.github.cleanroommc.assetmover;
 
-import com.google.common.collect.Multimap;
-import com.google.common.collect.MultimapBuilder;
 import com.google.common.util.concurrent.ListenableFuture;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
@@ -32,14 +30,15 @@ public class AssetMover {
     public static final String NAME = "AssetMover";
     public static final String VERSION = "@VERSION@";
 
-    private static final Logger logger = LogManager.getLogger("AssetMover");
+    private static Logger logger;
 
     @Mod.EventHandler
     @SuppressWarnings("unchecked")
     public void construct(FMLConstructionEvent event) {
-        Map<String, ListenableFuture<File>> minecraftVersions = new Object2ObjectOpenHashMap<>();
+        logger = LogManager.getLogger("AssetMover");
+        Map<MinecraftVersion, ListenableFuture<File>> minecraftVersions = new Object2ObjectOpenHashMap<>();
         Set<String> mods = new ObjectOpenHashSet<>();
-        Map<String, List<Pair<File, List<String>>>> assetRequesters = new Object2ObjectOpenHashMap<>();
+        Map<MinecraftVersion, List<Pair<File, List<String>>>> assetRequesters = new Object2ObjectOpenHashMap<>();
         for (ASMDataTable.ASMData asmData : event.getASMHarvestedData().getAll(RequestAsset.class.getName())) {
             List<String> data = new ArrayList<>();
             File file = asmData.getCandidate().getModContainer();
@@ -53,13 +52,12 @@ public class AssetMover {
                 e.printStackTrace();
             }
             if (!data.isEmpty()) {
-                String minecraftVersion = (String) asmData.getAnnotationInfo().get("minecraftVersion");
-                if (!minecraftVersion.isEmpty() && !minecraftVersions.containsKey(minecraftVersion)) {
+                MinecraftVersion minecraftVersion = (MinecraftVersion) asmData.getAnnotationInfo().get("minecraftVersion");
+                if (minecraftVersion != MinecraftVersion.NIL && !minecraftVersions.containsKey(minecraftVersion)) {
                     minecraftVersions.put(minecraftVersion, HttpUtil.DOWNLOADER_EXECUTOR.submit(() -> {
                         try {
-                            MinecraftVersion minecraftVersionObject = MinecraftVersion.grab(minecraftVersion);
-                            URLConnection conn = minecraftVersionObject.getURL().openConnection();
-                            if (conn.getContentLengthLong() == minecraftVersionObject.getSize()) {
+                            URLConnection conn = minecraftVersion.getURL().openConnection();
+                            if (conn.getContentLengthLong() == minecraftVersion.getSize()) {
                                 try (InputStream is = conn.getInputStream()) {
                                     Path temp = Files.createTempFile("client-" + minecraftVersion, ".jar");
                                     Files.copy(is, temp, StandardCopyOption.REPLACE_EXISTING);
@@ -88,7 +86,7 @@ public class AssetMover {
                 assetRequesters.computeIfAbsent(minecraftVersion, k -> new ArrayList<>()).add(Pair.of(file, data));
             }
         }
-        minecraftVersions.forEach((s, lf) -> assetRequesters.get(s).forEach(pair -> {
+        minecraftVersions.forEach((v, lf) -> assetRequesters.get(v).forEach(pair -> {
             try (FileSystem modFs = FileSystems.newFileSystem(pair.getLeft().toURI(), Collections.emptyMap())) {
                 try {
                     File file = lf.get(2, TimeUnit.MINUTES);
@@ -106,6 +104,7 @@ public class AssetMover {
                 e.printStackTrace();
             }
         }));
+        logger = null;
     }
 
 }
