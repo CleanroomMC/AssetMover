@@ -1,12 +1,14 @@
 package io.github.cleanroommc.assetmover;
 
+import com.google.common.base.Stopwatch;
 import com.google.common.util.concurrent.ListenableFuture;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
-import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import net.minecraft.util.HttpUtil;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.discovery.ASMDataTable;
+import net.minecraftforge.fml.common.discovery.asm.ModAnnotation;
 import net.minecraftforge.fml.common.event.FMLConstructionEvent;
+import net.minecraftforge.fml.relauncher.FMLLaunchHandler;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
@@ -30,38 +32,56 @@ public class AssetMover {
     public static final String NAME = "AssetMover";
     public static final String VERSION = "@VERSION@";
 
-    private static Logger logger;
-
     @Mod.EventHandler
     @SuppressWarnings("unchecked")
     public void construct(FMLConstructionEvent event) {
-        logger = LogManager.getLogger("AssetMover");
-        Map<MinecraftVersion, ListenableFuture<File>> minecraftVersions = new Object2ObjectOpenHashMap<>();
-        Set<String> mods = new ObjectOpenHashSet<>();
-        Map<MinecraftVersion, List<Pair<File, List<String>>>> assetRequesters = new Object2ObjectOpenHashMap<>();
-        for (ASMDataTable.ASMData asmData : event.getASMHarvestedData().getAll(RequestAsset.class.getName())) {
+        Logger logger = LogManager.getLogger("AssetMover");
+        Map<MinecraftVersion, ListenableFuture<Path>> minecraftVersions = new Object2ObjectOpenHashMap<>();
+        Map<MinecraftVersion, List<Pair<Path, List<String>>>> assetRequesters = new Object2ObjectOpenHashMap<>();
+        for (ASMDataTable.ASMData asmData : event.getASMHarvestedData().getAll(RequestMinecraftAssets.class.getName())) {
             List<String> data = new ArrayList<>();
             File file = asmData.getCandidate().getModContainer();
-            try (FileSystem fs = FileSystems.newFileSystem(file.toURI(), Collections.emptyMap())) {
-                for (String d : (String[]) asmData.getAnnotationInfo().get("data")) {
-                    if (!Files.exists(fs.getPath(d))) {
-                        data.add(d);
+            Path path;
+            if (FMLLaunchHandler.isDeobfuscatedEnvironment()) {
+                File buildFolder = file.getParentFile().getParentFile().getParentFile();
+                path = new File(buildFolder, "/resources/main").toPath();
+                for (String d : (List<String>) asmData.getAnnotationInfo().get("data")) {
+                    try {
+                        if (!Files.exists(path.resolve(d))) {
+                            data.add(d);
+                        }
+                    } catch (InvalidPathException e) {
+                        e.printStackTrace();
+                        logger.error("Path {} is not formatted correctly!", d);
                     }
                 }
-            } catch (IOException e) {
-                e.printStackTrace();
+            } else {
+                path = file.toPath();
+                try (FileSystem fs = FileSystems.newFileSystem(path, null)) {
+                    for (String d : (List<String>) asmData.getAnnotationInfo().get("data")) {
+                        if (!Files.exists(fs.getPath(d))) {
+                            data.add(d);
+                        }
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
             if (!data.isEmpty()) {
-                MinecraftVersion minecraftVersion = (MinecraftVersion) asmData.getAnnotationInfo().get("minecraftVersion");
-                if (minecraftVersion != MinecraftVersion.NIL && !minecraftVersions.containsKey(minecraftVersion)) {
-                    minecraftVersions.put(minecraftVersion, HttpUtil.DOWNLOADER_EXECUTOR.submit(() -> {
+                MinecraftVersion version = MinecraftVersion.valueOf(((ModAnnotation.EnumHolder) asmData.getAnnotationInfo().get("version")).getValue());
+                if (!minecraftVersions.containsKey(version)) {
+                    minecraftVersions.put(version, HttpUtil.DOWNLOADER_EXECUTOR.submit(() -> {
                         try {
-                            URLConnection conn = minecraftVersion.getURL().openConnection();
-                            if (conn.getContentLengthLong() == minecraftVersion.getSize()) {
+                            URLConnection conn = version.getURL().openConnection();
+                            if (conn.getContentLengthLong() == version.getSize()) {
                                 try (InputStream is = conn.getInputStream()) {
-                                    Path temp = Files.createTempFile("client-" + minecraftVersion, ".jar");
+                                    Path temp = Files.createTempFile("client-" + version, ".jar");
+                                    Stopwatch stopwatch = Stopwatch.createStarted();
+                                    logger.warn("Downloading Minecraft {} for its assets", version.getVersion());
                                     Files.copy(is, temp, StandardCopyOption.REPLACE_EXISTING);
-                                    return temp.toFile();
+                                    logger.warn("Finished downloading Minecraft {} for its assets. It took {}", version.getVersion(), stopwatch.stop());
+                                    temp.toFile().deleteOnExit();
+                                    return temp;
                                 } catch (Throwable t) {
                                     t.printStackTrace();
                                     try {
@@ -71,7 +91,7 @@ public class AssetMover {
                                     }
                                 }
                             } else {
-                                throw new RuntimeException("Minecraft " + minecraftVersion + " failed to be fetched as reported size is mismatched!");
+                                throw new RuntimeException("Minecraft " + version + " failed to be fetched as reported size is mismatched!");
                             }
                         } catch (IOException e) {
                             e.printStackTrace();
@@ -79,20 +99,18 @@ public class AssetMover {
                         return null;
                     }));
                 }
-                String modURL = (String) asmData.getAnnotationInfo().get("modURL");
-                if (!modURL.isEmpty()) {
-                    mods.add(modURL);
-                }
-                assetRequesters.computeIfAbsent(minecraftVersion, k -> new ArrayList<>()).add(Pair.of(file, data));
+                assetRequesters.computeIfAbsent(version, k -> new ArrayList<>()).add(Pair.of(path, data));
             }
         }
         minecraftVersions.forEach((v, lf) -> assetRequesters.get(v).forEach(pair -> {
-            try (FileSystem modFs = FileSystems.newFileSystem(pair.getLeft().toURI(), Collections.emptyMap())) {
+            if (FMLLaunchHandler.isDeobfuscatedEnvironment()) {
                 try {
-                    File file = lf.get(2, TimeUnit.MINUTES);
-                    try (FileSystem assetFs = FileSystems.newFileSystem(file.toURI(), Collections.emptyMap())) {
+                    Path assets = lf.get(2, TimeUnit.MINUTES);
+                    try (FileSystem assetFs = FileSystems.newFileSystem(assets, null)) {
                         for (String data : pair.getRight()) {
-                            Files.move(modFs.getPath(data), assetFs.getPath(data), StandardCopyOption.REPLACE_EXISTING);
+                            Path resolvedDataPath = pair.getLeft().resolve(data);
+                            resolvedDataPath.toFile().mkdirs();
+                            Files.copy(assetFs.getPath(data), resolvedDataPath, StandardCopyOption.REPLACE_EXISTING);
                         }
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -100,11 +118,28 @@ public class AssetMover {
                 } catch (ExecutionException | InterruptedException | TimeoutException e) {
                     e.printStackTrace();
                 }
-            } catch (IOException e) {
-                e.printStackTrace();
+            } else {
+                try (FileSystem modFs = FileSystems.newFileSystem(pair.getLeft(), null)) {
+                    try {
+                        Path assets = lf.get(2, TimeUnit.MINUTES);
+                        try (FileSystem assetFs = FileSystems.newFileSystem(assets, null)) {
+                            for (String data : pair.getRight()) {
+                                Path resolvedDataPath = modFs.getPath(data);
+                                resolvedDataPath.toFile().mkdirs();
+                                Files.copy(assetFs.getPath(data), resolvedDataPath);
+                            }
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    } catch (ExecutionException | InterruptedException | TimeoutException e) {
+                        e.printStackTrace();
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
         }));
-        logger = null;
+
     }
 
 }
