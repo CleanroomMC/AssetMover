@@ -33,7 +33,7 @@ public class AssetMover {
 
     public static final String MODID = "assetmover";
     public static final String NAME = "AssetMover";
-    public static final String VERSION = "@VERSION@";
+    public static final String VERSION = "0.1";
 
     private static String getModNamespacedData(String data, String search, String replacement) {
         return StringUtils.replace(data, search, replacement, 1);
