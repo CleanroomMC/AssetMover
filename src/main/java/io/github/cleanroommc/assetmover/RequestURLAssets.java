@@ -1,8 +1,10 @@
 package io.github.cleanroommc.assetmover;
 
-public @interface RequestMinecraftAssets {
+public @interface RequestURLAssets {
 
-    MinecraftVersion version();
+    String url();
+
+    String sourceNamespace();
 
     String targetNamespace();
 
