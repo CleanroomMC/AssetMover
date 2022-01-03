@@ -122,7 +122,9 @@ public class AssetMover {
                         try (FileSystem assetFs = FileSystems.newFileSystem(assets, null)) {
                             for (String data : pair.getRight()) {
                                 Path resolvedDataPath = modFs.getPath(data);
-                                resolvedDataPath.toFile().mkdirs();
+                                if (resolvedDataPath.getParent() != null) {
+                                    Files.createDirectories(resolvedDataPath.getParent());
+                                }
                                 Files.copy(assetFs.getPath(data), resolvedDataPath);
                             }
                         } catch (IOException e) {
