@@ -3,7 +3,6 @@ package io.github.cleanroommc.assetmover;
 import com.google.common.base.Stopwatch;
 import com.google.common.util.concurrent.ListenableFuture;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
-import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import net.minecraft.launchwrapper.Launch;
 import net.minecraft.util.HttpUtil;
 import net.minecraftforge.fml.common.Mod;
@@ -28,7 +27,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-@Mod(modid = AssetMover.MODID, name = AssetMover.NAME, version = AssetMover.VERSION)
+@InternalModAnnotation(modid = AssetMover.MODID, name = AssetMover.NAME, version = AssetMover.VERSION)
 @RequestMinecraftAssets(version = MinecraftVersion.V1_18_1, targetNamespace = AssetMover.MODID, data = "assets/minecraft/textures/item/bundle.png")
 public class AssetMover {
 
@@ -44,41 +43,29 @@ public class AssetMover {
     @SuppressWarnings("unchecked")
     public void construct(FMLConstructionEvent event) {
         Logger logger = LogManager.getLogger("AssetMover");
-        Path assetsPath = FMLLaunchHandler.isDeobfuscatedEnvironment() ? null : Launch.minecraftHome.toPath().resolve("assetmover");
         Map<MinecraftVersion, ListenableFuture<Path>> mcJars = new Object2ObjectOpenHashMap<>();
         Map<MinecraftVersion, List<Pair<Path, Map<String, String>>>> requests = new Object2ObjectOpenHashMap<>();
         for (ASMDataTable.ASMData asmData : event.getASMHarvestedData().getAll(RequestMinecraftAssets.class.getName())) {
             Map<String, String> requestedData = new Object2ObjectOpenHashMap<>();
             String id = (String) asmData.getAnnotationInfo().get("targetNamespace");
             File file = asmData.getCandidate().getModContainer();
-            Path path;
-            if (FMLLaunchHandler.isDeobfuscatedEnvironment()) {
-                path = new File(file.getParentFile().getParentFile().getParentFile(), /*File.separatorChar + */"resources" + File.separatorChar + "main").toPath();
-                for (String data : (List<String>) asmData.getAnnotationInfo().get("data")) {
-                    String namespacedData = getModNamespacedData(data, "minecraft", id);
-                    try {
-                        if (!Files.exists(path.resolve(namespacedData))) {
-                            requestedData.put(data, namespacedData);
-                        }
-                    } catch (InvalidPathException e) {
-                        logger.error("Path {} is not formatted correctly!", namespacedData);
+            logger.info("Scanning {} for its requested assets", file.getName());
+            Path path = FMLLaunchHandler.isDeobfuscatedEnvironment() ?
+                    new File(file.getParentFile().getParentFile().getParentFile(), "resources" + File.separatorChar + "main").toPath() :
+                    Launch.minecraftHome.toPath().resolve("assetmover");
+            for (String data : (List<String>) asmData.getAnnotationInfo().get("data")) {
+                String namespacedData = getModNamespacedData(data, "minecraft", id);
+                try {
+                    Path namespacedDataPath = path.resolve(namespacedData);
+                    logger.debug("Checking if {} exists.", namespacedDataPath);
+                    if (!Files.exists(namespacedDataPath)) {
+                        logger.debug("{} does not exist, adding to requestedData queue.", namespacedDataPath);
+                        requestedData.put(data, namespacedData);
+                    } else {
+                        logger.debug("{} does exist. Skipping.", namespacedDataPath);
                     }
-                }
-            } else {
-                path = assetsPath;
-                try (FileSystem fs = FileSystems.newFileSystem(file.toPath(), null)) {
-                    for (String data : (List<String>) asmData.getAnnotationInfo().get("data")) {
-                        String namespacedData = getModNamespacedData(data, "minecraft", id);
-                        try {
-                            if (!Files.exists(fs.getPath(namespacedData))) {
-                                requestedData.put(data, namespacedData);
-                            }
-                        } catch (InvalidPathException e) {
-                            logger.error("Path {} is not formatted correctly!", namespacedData);
-                        }
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
+                } catch (InvalidPathException e) {
+                    logger.error("Path {} is not formatted correctly!", namespacedData);
                 }
             }
             if (!requestedData.isEmpty()) {
@@ -125,7 +112,9 @@ public class AssetMover {
                             for (Map.Entry<String, String> data : pair.getRight().entrySet()) {
                                 Path resolvedDataPath = pair.getLeft().resolve(data.getValue());
                                 resolvedDataPath.toFile().mkdirs();
-                                Files.copy(assetFs.getPath(data.getKey()), resolvedDataPath, StandardCopyOption.REPLACE_EXISTING);
+                                Path assetPath = assetFs.getPath(data.getKey());
+                                logger.info("Moving asset {} to {}", assetPath, resolvedDataPath);
+                                Files.copy(assetPath, resolvedDataPath, StandardCopyOption.REPLACE_EXISTING);
                             }
                         } catch (IOException e) {
                             e.printStackTrace();
@@ -136,6 +125,7 @@ public class AssetMover {
                     e.printStackTrace();
                 }
             });
+
         }
     }
 

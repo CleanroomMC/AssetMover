@@ -75,3 +75,12 @@ processResources {
         exclude 'mcmod.info'
     }
 }
+
+jar {
+    manifest {
+        attributes([
+                "FMLCorePluginContainsFMLMod": true,
+                "FMLCorePlugin": 'io.github.cleanroommc.assetmover.AssetMoverCore'
+        ])
+    }
+}
