@@ -3,6 +3,7 @@ package io.github.cleanroommc.assetmover;
 import com.google.common.base.Stopwatch;
 import com.google.common.util.concurrent.ListenableFuture;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import net.minecraft.util.HttpUtil;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.discovery.ASMDataTable;
@@ -102,10 +103,11 @@ public class AssetMover {
                 assetRequesters.computeIfAbsent(version, k -> new ArrayList<>()).add(Pair.of(path, data));
             }
         }
+        Set<Path> tempFiles = new ObjectOpenHashSet<>();
         minecraftVersions.forEach((v, lf) -> assetRequesters.get(v).forEach(pair -> {
-            if (FMLLaunchHandler.isDeobfuscatedEnvironment()) {
-                try {
-                    Path assets = lf.get(2, TimeUnit.MINUTES);
+            try {
+                Path assets = lf.get(1, TimeUnit.MINUTES);
+                if (FMLLaunchHandler.isDeobfuscatedEnvironment()) {
                     try (FileSystem assetFs = FileSystems.newFileSystem(assets, null)) {
                         for (String data : pair.getRight()) {
                             Path resolvedDataPath = pair.getLeft().resolve(data);
@@ -115,13 +117,8 @@ public class AssetMover {
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
-                } catch (ExecutionException | InterruptedException | TimeoutException e) {
-                    e.printStackTrace();
-                }
-            } else {
-                try (FileSystem modFs = FileSystems.newFileSystem(pair.getLeft(), null)) {
-                    try {
-                        Path assets = lf.get(2, TimeUnit.MINUTES);
+                } else {
+                    try (FileSystem modFs = FileSystems.newFileSystem(pair.getLeft(), null)) {
                         try (FileSystem assetFs = FileSystems.newFileSystem(assets, null)) {
                             for (String data : pair.getRight()) {
                                 Path resolvedDataPath = modFs.getPath(data);
@@ -131,15 +128,16 @@ public class AssetMover {
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
-                    } catch (ExecutionException | InterruptedException | TimeoutException e) {
+                    } catch (IOException e) {
                         e.printStackTrace();
                     }
-                } catch (IOException e) {
-                    e.printStackTrace();
                 }
+                tempFiles.add(assets);
+            } catch (ExecutionException | InterruptedException | TimeoutException e) {
+                e.printStackTrace();
             }
         }));
-
+        tempFiles.forEach(p -> p.toFile().delete());
     }
 
 }
