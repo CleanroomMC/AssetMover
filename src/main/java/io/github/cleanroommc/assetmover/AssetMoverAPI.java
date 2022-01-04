@@ -1,10 +1,16 @@
 package io.github.cleanroommc.assetmover;
 
+import com.google.common.base.Charsets;
+import com.google.gson.JsonParser;
+import io.netty.util.internal.UnstableApi;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.launchwrapper.Launch;
+import net.minecraftforge.fml.relauncher.FMLLaunchHandler;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
@@ -19,7 +25,7 @@ public class AssetMoverAPI {
     }
 
     private static final String curseUrl = "https://addons-ecs.forgesvc.net/api/v2/addon/%s/file/%s";
-    private static final Path parentPath = Launch.minecraftHome.toPath().resolve("assetmover");
+    private static final Path parentPath = FMLLaunchHandler.isDeobfuscatedEnvironment() ? Paths.get("").resolve("assetmover") : Launch.minecraftHome.toPath().resolve("assetmover");
 
     private static final Map<String, Path> mcFiles = new Object2ObjectOpenHashMap<>();
     private static final Map<String, Path> urlFiles = new Object2ObjectOpenHashMap<>();
@@ -48,14 +54,18 @@ public class AssetMoverAPI {
         }
     }
 
+    @UnstableApi
     public static void fromCurseForgeMod(String projectId, String fileId, Map<String, String> assets) {
         if (hasDuplicates(assets)) {
             return;
         }
         try {
             String name = projectId + "-" + fileId;
-            $fromURL(new URL(String.format(curseUrl, projectId, fileId)), name, assets);
-        } catch (MalformedURLException e) {
+            URL metaUrl = new URL(String.format(curseUrl, projectId, fileId));
+            BufferedReader br = new BufferedReader(new InputStreamReader(metaUrl.openStream(), Charsets.UTF_8));
+            URL curseForgeUrl = new URL(new JsonParser().parse(br).getAsJsonObject().get("downloadUrl").getAsString());
+            $fromURL(curseForgeUrl, name, assets);
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
@@ -68,7 +78,10 @@ public class AssetMoverAPI {
     }
 
     private static boolean hasDuplicates(Map<String, String> assets) {
-        return assets.values().stream().anyMatch(s -> Files.exists(parentPath.resolve(s)));
+        return assets.values().stream().anyMatch(s -> {
+            Path resolved = parentPath.resolve(s);
+            return Files.exists(resolved) && !Files.isDirectory(resolved);
+        });
     }
 
     private static void $fromURL(URL url, String name, Map<String, String> assets) {
@@ -78,6 +91,7 @@ public class AssetMoverAPI {
             try {
                 download(url, tempFile = Files.createTempFile(name, ".jar"));
                 tempFile.toFile().deleteOnExit();
+                urlFiles.put(urlString, tempFile);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -90,6 +104,7 @@ public class AssetMoverAPI {
 
     private static void download(URL downloadFrom, Path downloadTo) {
         try {
+            downloadTo.toFile().getParentFile().mkdirs();
             URLConnection conn = downloadFrom.openConnection();
             Files.copy(conn.getInputStream(), downloadTo, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
@@ -100,7 +115,8 @@ public class AssetMoverAPI {
     private static void moveViaFilesystem(Path file, Map<String, String> assets) {
         try (FileSystem modFs = FileSystems.newFileSystem(file, null)) {
             for (Map.Entry<String, String> entry : assets.entrySet()) {
-                move(modFs.getPath(entry.getKey()), parentPath.resolve(entry.getValue()));
+                Path path = parentPath.resolve(entry.getValue());
+                move(modFs.getPath(entry.getKey()), path);
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -109,6 +125,7 @@ public class AssetMoverAPI {
 
     private static void move(Path from, Path to) {
         try {
+            to.toFile().getParentFile().mkdirs();
             Files.copy(from, to, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
             e.printStackTrace();
