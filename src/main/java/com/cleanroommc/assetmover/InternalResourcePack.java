@@ -1,4 +1,4 @@
-package io.github.cleanroommc.assetmover;
+package com.cleanroommc.assetmover;
 
 import com.google.gson.JsonObject;
 import net.minecraft.client.resources.FolderResourcePack;

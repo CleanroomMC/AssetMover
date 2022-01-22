@@ -1,4 +1,4 @@
-package io.github.cleanroommc.assetmover;
+package com.cleanroommc.assetmover;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

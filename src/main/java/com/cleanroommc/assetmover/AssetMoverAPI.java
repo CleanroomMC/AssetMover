@@ -1,4 +1,4 @@
-package io.github.cleanroommc.assetmover;
+package com.cleanroommc.assetmover;
 
 import com.google.common.base.Charsets;
 import com.google.gson.JsonParser;

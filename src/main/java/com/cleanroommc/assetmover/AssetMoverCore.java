@@ -1,4 +1,4 @@
-package io.github.cleanroommc.assetmover;
+package com.cleanroommc.assetmover;
 
 import net.minecraftforge.common.ForgeVersion;
 import net.minecraftforge.fml.common.ModContainerFactory;
@@ -13,7 +13,7 @@ import java.util.Map;
 public class AssetMoverCore implements IFMLLoadingPlugin {
 
     public AssetMoverCore() {
-        ModContainerFactory.instance().registerContainerType(Type.getType(InternalModAnnotation.class), AssetMoverModContainer.class);
+        ModContainerFactory.instance().registerContainerType(Type.getType(com.cleanroommc.assetmover.InternalModAnnotation.class), AssetMoverModContainer.class);
     }
 
     @Override

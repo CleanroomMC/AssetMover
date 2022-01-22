@@ -1,4 +1,4 @@
-package io.github.cleanroommc.assetmover;
+package com.cleanroommc.assetmover;
 
 import net.minecraftforge.fml.common.*;
 import net.minecraftforge.fml.common.discovery.ModCandidate;
