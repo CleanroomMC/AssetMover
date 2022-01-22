@@ -13,7 +13,7 @@ import java.util.Map;
 public class AssetMoverCore implements IFMLLoadingPlugin {
 
     public AssetMoverCore() {
-        ModContainerFactory.instance().registerContainerType(Type.getType(com.cleanroommc.assetmover.InternalModAnnotation.class), AssetMoverModContainer.class);
+        ModContainerFactory.instance().registerContainerType(Type.getType(InternalModAnnotation.class), AssetMoverModContainer.class);
     }
 
     @Override
