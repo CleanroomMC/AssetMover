@@ -1,6 +1,7 @@
 package com.cleanroommc.assetmover;
 
 import com.google.gson.JsonObject;
+import net.minecraft.client.renderer.texture.TextureUtil;
 import net.minecraft.client.resources.FolderResourcePack;
 import net.minecraft.client.resources.data.IMetadataSection;
 import net.minecraft.client.resources.data.MetadataSerializer;
@@ -8,7 +9,6 @@ import net.minecraft.launchwrapper.Launch;
 import net.minecraftforge.fml.common.FMLContainerHolder;
 import net.minecraftforge.fml.common.ModContainer;
 
-import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.*;
 
@@ -43,7 +43,7 @@ public class InternalResourcePack extends FolderResourcePack implements FMLConta
 
     @Override
     public BufferedImage getPackImage() throws IOException {
-        return ImageIO.read(getInputStreamByName(mc.getMetadata().logoFile));
+        return TextureUtil.readBufferedImage(getClass().getResourceAsStream("/icon.png"));
     }
 
 }
