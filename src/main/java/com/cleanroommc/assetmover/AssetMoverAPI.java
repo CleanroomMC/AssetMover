@@ -6,6 +6,8 @@ import io.netty.util.internal.UnstableApi;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.launchwrapper.Launch;
 import net.minecraftforge.fml.relauncher.FMLLaunchHandler;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -19,10 +21,7 @@ import java.util.Map;
 
 public class AssetMoverAPI {
 
-    static void clear() {
-        mcFiles.clear();
-        urlFiles.values().stream().map(Path::toFile).forEach(File::delete);
-    }
+    private static final Logger LOGGER = LogManager.getLogger("AssetMoverAPI");
 
     private static final String curseUrl = "https://addons-ecs.forgesvc.net/api/v2/addon/%s/file/%s";
     private static final String mcAssetRepoUrl = "https://github.com/InventivetalentDev/minecraft-assets/raw/%s/%s";
@@ -30,6 +29,12 @@ public class AssetMoverAPI {
 
     private static final Map<String, Path> mcFiles = new Object2ObjectOpenHashMap<>();
     private static final Map<String, Path> urlFiles = new Object2ObjectOpenHashMap<>();
+
+    static void clear() {
+        LOGGER.info("Clearing Cache.");
+        mcFiles.clear();
+        urlFiles.values().stream().map(Path::toFile).forEach(File::delete);
+    }
 
     public static void fromMinecraft(String mcVersion, Map<String, String> assets) {
         for (Map.Entry<String, String> entry : assets.entrySet()) {

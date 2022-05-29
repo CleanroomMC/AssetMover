@@ -1,19 +1,45 @@
 package com.cleanroommc.assetmover;
 
+import com.google.common.eventbus.EventBus;
+import com.google.common.eventbus.Subscribe;
 import net.minecraftforge.fml.common.*;
-import net.minecraftforge.fml.common.discovery.ModCandidate;
+import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 
-import java.util.Map;
+import java.util.Collections;
 
-public class AssetMoverModContainer extends FMLModContainer {
+public class AssetMoverModContainer extends DummyModContainer {
 
-    public AssetMoverModContainer(String className, ModCandidate container, Map<String, Object> modDescriptor) {
-        super(className, container, modDescriptor);
+    private static final ModMetadata modMetadata = new ModMetadata();
+
+    static {
+        modMetadata.modId = "assetmover";
+        modMetadata.name = "AssetMover";
+        modMetadata.description = "Allows acquiring of vanilla/mod assets at runtime without potentially violating licenses.";
+        modMetadata.version = "1.1";
+        modMetadata.url = "https://github.com/CleanroomMC/AssetMover";
+        modMetadata.authorList = Collections.singletonList("CleanroomMC");
+        modMetadata.credits = "Rongmario";
+        modMetadata.logoFile = "/icon.png";
+    }
+
+    public AssetMoverModContainer() {
+        super(modMetadata);
     }
 
     @Override
     public Class<?> getCustomResourcePackClass() {
         return InternalResourcePack.class;
+    }
+
+    @Override
+    public boolean registerBus(EventBus bus, LoadController controller) {
+        bus.register(this);
+        return true;
+    }
+
+    @Subscribe
+    public void init(FMLInitializationEvent event) {
+        AssetMoverAPI.clear();
     }
 
 }
