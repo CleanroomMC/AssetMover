@@ -19,7 +19,7 @@ public class AssetMoverModContainer extends DummyModContainer {
         modMetadata.url = "https://github.com/CleanroomMC/AssetMover";
         modMetadata.authorList = Collections.singletonList("CleanroomMC");
         modMetadata.credits = "Rongmario";
-        modMetadata.logoFile = "/icon.png";
+        modMetadata.logoFile = "/asset_mover_icon.png";
     }
 
     public AssetMoverModContainer() {

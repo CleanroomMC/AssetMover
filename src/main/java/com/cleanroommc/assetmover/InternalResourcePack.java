@@ -43,7 +43,7 @@ public class InternalResourcePack extends FolderResourcePack implements FMLConta
 
     @Override
     public BufferedImage getPackImage() throws IOException {
-        return TextureUtil.readBufferedImage(getClass().getResourceAsStream("/icon.png"));
+        return TextureUtil.readBufferedImage(getClass().getResourceAsStream("/asset_mover_icon.png"));
     }
 
 }
