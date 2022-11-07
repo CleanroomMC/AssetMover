@@ -23,7 +23,7 @@ public class AssetMoverAPI {
 
     private static final Logger LOGGER = LogManager.getLogger("AssetMoverAPI");
 
-    private static final String curseUrl = "https://addons-ecs.forgesvc.net/api/v2/addon/%s/file/%s";
+    private static final String curseUrl = "https://api.curse.tools/v1/cf/mods/%s/files/%s";
     private static final String mcAssetRepoUrl = "https://github.com/InventivetalentDev/minecraft-assets/raw/%s/%s";
     private static final Path parentPath = FMLLaunchHandler.isDeobfuscatedEnvironment() ? Paths.get("").resolve("assetmover") : Launch.minecraftHome.toPath().resolve("assetmover");
 
