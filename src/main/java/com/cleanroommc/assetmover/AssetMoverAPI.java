@@ -23,7 +23,8 @@ public class AssetMoverAPI {
 
     private static final Logger LOGGER = LogManager.getLogger("AssetMoverAPI");
 
-    private static final String curseUrl = "https://addons-ecs.forgesvc.net/api/v2/addon/%s/file/%s";
+    // https://api.curseforge.com/v1/mods/%s/files/%s/download-url
+    private static final String curseUrl = "https://api.curse.tools/v1/cf/mods/%s/files/%s/download-url";
     private static final String mcAssetRepoUrl = "https://github.com/InventivetalentDev/minecraft-assets/raw/%s/%s";
     private static final Path parentPath = FMLLaunchHandler.isDeobfuscatedEnvironment() ? Paths.get("").resolve("assetmover") : Launch.minecraftHome.toPath().resolve("assetmover");
 
@@ -68,8 +69,12 @@ public class AssetMoverAPI {
         try {
             String name = projectId + "-" + fileId;
             URL metaUrl = new URL(String.format(curseUrl, projectId, fileId));
-            BufferedReader br = new BufferedReader(new InputStreamReader(metaUrl.openStream(), Charsets.UTF_8));
-            URL curseForgeUrl = new URL(new JsonParser().parse(br).getAsJsonObject().get("downloadUrl").getAsString());
+            HttpURLConnection httpcon = (HttpURLConnection) metaUrl.openConnection();
+            httpcon.addRequestProperty("User-Agent", "Mozilla/4.0");
+//             httpcon.addRequestProperty("x-api-key", API_KEY);
+            BufferedReader br = new BufferedReader(new InputStreamReader(httpcon.getInputStream(), Charsets.UTF_8));
+            URL curseForgeUrl = new URL(new JsonParser().parse(br).getAsJsonObject().get("data").getAsString());
+            httpcon.disconnect();
             $fromURL(curseForgeUrl, name, assets);
         } catch (IOException e) {
             e.printStackTrace();
