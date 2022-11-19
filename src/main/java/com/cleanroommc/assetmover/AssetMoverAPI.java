@@ -1,42 +1,68 @@
 package com.cleanroommc.assetmover;
 
-import com.google.common.base.Charsets;
-import com.google.gson.JsonParser;
 import io.netty.util.internal.UnstableApi;
-import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
-import net.minecraft.launchwrapper.Launch;
-import net.minecraftforge.fml.relauncher.FMLLaunchHandler;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.MalformedURLException;
+import java.net.URISyntaxException;
 import java.net.URL;
-import java.net.URLConnection;
 import java.nio.file.*;
 import java.util.Map;
 
 public class AssetMoverAPI {
 
-    private static final Logger LOGGER = LogManager.getLogger("AssetMoverAPI");
+    public static final String VERSION = "2.0";
 
-    // https://api.curseforge.com/v1/mods/%s/files/%s/download-url
-    private static final String curseUrl = "https://api.curse.tools/v1/cf/mods/%s/files/%s/download-url";
-    private static final String mcAssetRepoUrl = "https://github.com/InventivetalentDev/minecraft-assets/raw/%s/%s";
-    private static final Path parentPath = FMLLaunchHandler.isDeobfuscatedEnvironment() ? Paths.get("").resolve("assetmover") : Launch.minecraftHome.toPath().resolve("assetmover");
+    static final Logger LOGGER = LogManager.getLogger("AssetMover");
+    static final Path PARENT_PATH = Paths.get("").resolve("assetmover");
 
-    private static final Map<String, Path> mcFiles = new Object2ObjectOpenHashMap<>();
-    private static final Map<String, Path> urlFiles = new Object2ObjectOpenHashMap<>();
-
-    static void clear() {
-        LOGGER.info("Clearing Cache.");
-        mcFiles.clear();
-        urlFiles.values().stream().map(Path::toFile).forEach(File::delete);
+    public static void fromMinecraft(String version, Map<String, String> assets) {
+        if (!needsUpdating(assets)) {
+            return;
+        }
+        try {
+            AssetMoverHelper.getMinecraftVersion(version, assets);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
+    @UnstableApi
+    public static void fromCurseForgeMod(String projectId, String fileId, Map<String, String> assets) {
+        if (!needsUpdating(assets)) {
+            return;
+        }
+        try {
+            Path file = AssetMoverHelper.getCurseForgeMod(projectId, fileId);
+            AssetMoverHelper.moveViaFilesystem(file, assets);
+        } catch (IOException | URISyntaxException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void fromUrlMod(String url, Map<String, String> assets) {
+        try {
+            fromUrlMod(new URL(url), assets);
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void fromUrlMod(URL url, Map<String, String> assets) {
+        if (!needsUpdating(assets)) {
+            return;
+        }
+        try {
+            Path file = AssetMoverHelper.getUrlMod(url, url.getFile());
+            AssetMoverHelper.moveViaFilesystem(file, assets);
+        } catch (IOException | URISyntaxException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /*
     public static void fromMinecraft(String mcVersion, Map<String, String> assets) {
         for (Map.Entry<String, String> entry : assets.entrySet()) {
             String target = entry.getValue();
@@ -60,88 +86,14 @@ public class AssetMoverAPI {
             }
         }
     }
-
-    @UnstableApi
-    public static void fromCurseForgeMod(String projectId, String fileId, Map<String, String> assets) {
-        if (!needsUpdating(assets)) {
-            return;
-        }
-        try {
-            String name = projectId + "-" + fileId;
-            URL metaUrl = new URL(String.format(curseUrl, projectId, fileId));
-            HttpURLConnection httpcon = (HttpURLConnection) metaUrl.openConnection();
-            httpcon.addRequestProperty("User-Agent", "Mozilla/4.0");
-//             httpcon.addRequestProperty("x-api-key", API_KEY);
-            BufferedReader br = new BufferedReader(new InputStreamReader(httpcon.getInputStream(), Charsets.UTF_8));
-            URL curseForgeUrl = new URL(new JsonParser().parse(br).getAsJsonObject().get("data").getAsString());
-            httpcon.disconnect();
-            $fromURL(curseForgeUrl, name, assets);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public static void fromURL(URL url, String name, Map<String, String> assets) {
-        if (!needsUpdating(assets)) {
-            return;
-        }
-        $fromURL(url, name, assets);
-    }
+     */
 
     private static boolean needsUpdating(String asset) {
-        return !Files.exists(parentPath.resolve(asset));
+        return !Files.exists(PARENT_PATH.resolve(asset));
     }
 
     private static boolean needsUpdating(Map<String, String> asset) {
-        return asset.values().stream().anyMatch(s -> !Files.exists(parentPath.resolve(s)));
-    }
-
-    private static void $fromURL(URL url, String name, Map<String, String> assets) {
-        String urlString = url.toString();
-        Path tempFile = urlFiles.get(urlString);
-        if (tempFile == null) {
-            try {
-                download(url, tempFile = Files.createTempFile(name, ".jar"));
-                tempFile.toFile().deleteOnExit();
-                urlFiles.put(urlString, tempFile);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            if (tempFile == null) {
-                throw new RuntimeException("Unable to discover " + urlString + " for " + name);
-            }
-        }
-        moveViaFilesystem(tempFile, assets);
-    }
-
-    private static void download(URL downloadFrom, Path downloadTo) {
-        try {
-            downloadTo.toFile().getParentFile().mkdirs();
-            URLConnection conn = downloadFrom.openConnection();
-            Files.copy(conn.getInputStream(), downloadTo, StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private static void moveViaFilesystem(Path file, Map<String, String> assets) {
-        try (FileSystem modFs = FileSystems.newFileSystem(file, null)) {
-            for (Map.Entry<String, String> entry : assets.entrySet()) {
-                Path path = parentPath.resolve(entry.getValue());
-                move(modFs.getPath(entry.getKey()), path);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private static void move(Path from, Path to) {
-        try {
-            to.toFile().getParentFile().mkdirs();
-            Files.copy(from, to, StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        return asset.values().stream().anyMatch(s -> !Files.exists(PARENT_PATH.resolve(s)));
     }
 
     private AssetMoverAPI() { }
