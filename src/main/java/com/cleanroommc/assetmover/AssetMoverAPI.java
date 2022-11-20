@@ -25,7 +25,7 @@ public class AssetMoverAPI {
         try {
             AssetMoverHelper.fromMinecraftVersion(version, assets);
         } catch (IOException e) {
-            LOGGER.fatal("Unexpected error occured", e);
+            LOGGER.fatal("Unexpected error occurred", e);
         }
     }
 
@@ -38,27 +38,27 @@ public class AssetMoverAPI {
             Path file = AssetMoverHelper.getCurseForgeMod(projectId, fileId);
             AssetMoverHelper.moveViaFilesystem(file, assets);
         } catch (IOException | URISyntaxException e) {
-            LOGGER.fatal("Unexpected error occured", e);
+            LOGGER.fatal("Unexpected error occurred", e);
         }
     }
 
-    public static void fromUrlMod(String url, Map<String, String> assets) {
+    public static void fromUrlFile(String url, Map<String, String> assets) {
         try {
-            fromUrlMod(new URL(url), assets);
+            fromUrlFile(new URL(url), assets);
         } catch (MalformedURLException e) {
-            LOGGER.fatal("Unexpected error occured", e);
+            LOGGER.fatal("Unexpected error occurred", e);
         }
     }
 
-    public static void fromUrlMod(URL url, Map<String, String> assets) {
+    public static void fromUrlFile(URL url, Map<String, String> assets) {
         if (!needsUpdating(assets)) {
             return;
         }
         try {
-            Path file = AssetMoverHelper.getUrlMod(url, url.getFile());
+            Path file = AssetMoverHelper.getFileFromUrl(url, url.getFile());
             AssetMoverHelper.moveViaFilesystem(file, assets);
         } catch (IOException | URISyntaxException e) {
-            LOGGER.fatal("Unexpected error occured", e);
+            LOGGER.fatal("Unexpected error occurred", e);
         }
     }
 
