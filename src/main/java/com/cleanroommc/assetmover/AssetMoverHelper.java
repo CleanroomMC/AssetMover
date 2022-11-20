@@ -15,9 +15,6 @@ import java.net.URL;
 import java.nio.file.*;
 import java.util.*;
 import java.util.Map.Entry;
-import java.util.jar.JarFile;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
 
 public class AssetMoverHelper {
 
@@ -48,14 +45,11 @@ public class AssetMoverHelper {
     }
 
     static void getMinecraftVersion(String version, Map<String, String> assets) throws IOException {
+        Map<String, String> assetsModifiable = new Object2ObjectOpenHashMap<>(assets);
         File versionsFolder = new File(getMinecraftDirectory(), "versions");
         JsonObject versionObject = getVersionJson(version, versionsFolder);
-        Map<String, String> remainingAssets = new Object2ObjectOpenHashMap<>(assets);
-        getAssetIndexObjectsAndMove(version, versionObject, remainingAssets);
-        getClientJarAndMove(version, versionsFolder, versionObject, remainingAssets);
-        if (!remainingAssets.isEmpty()) {
-            // LOG
-        }
+        getAssetIndexObjectsAndMove(version, versionObject, assetsModifiable);
+        getClientJarAndMove(version, versionsFolder, versionObject, assetsModifiable);
     }
 
     static Path getCurseForgeMod(String projectId, String fileId) throws IOException, URISyntaxException {
@@ -90,33 +84,42 @@ public class AssetMoverHelper {
 
     static void moveViaFilesystem(Path file, Map<String, String> assets) {
         try (FileSystem modFs = FileSystems.newFileSystem(file, null)) {
-            for (Map.Entry<String, String> entry : assets.entrySet()) {
+            Iterator<Map.Entry<String, String>> iter = assets.entrySet().iterator();
+            while (iter.hasNext()) {
+                Map.Entry<String, String> entry = iter.next();
                 Path path = AssetMoverAPI.PARENT_PATH.resolve(entry.getValue());
-                move(modFs.getPath(entry.getKey()), path);
+                try {
+                    move(modFs.getPath(entry.getKey()), path);
+                    iter.remove();
+                } catch (FileNotFoundException e) {
+                    AssetMoverAPI.LOGGER.fatal("Could not find asset '{}' to be copied over.", entry.getKey());
+                }
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            AssetMoverAPI.LOGGER.fatal("Unexpected error occurred", e);
         }
     }
 
-    static void move(Path from, Path to) {
+    static void move(Path from, Path to) throws IOException {
+        to.toFile().getParentFile().mkdirs();
+        Files.copy(from, to, StandardCopyOption.REPLACE_EXISTING);
+    }
+
+    static void move(File from, File to) {
         try {
-            to.toFile().getParentFile().mkdirs();
-            Files.copy(from, to, StandardCopyOption.REPLACE_EXISTING);
+            to.getParentFile().mkdirs();
+            com.google.common.io.Files.copy(from, to);
         } catch (IOException e) {
-            e.printStackTrace();
+            AssetMoverAPI.LOGGER.fatal("Unexpected error occurred", e);
         }
     }
 
-    static void move(File from, File to) throws IOException {
-        to.getParentFile().mkdirs();
-        com.google.common.io.Files.copy(from, to);
-    }
-
-    static void move(InputStream from, File to) throws IOException {
+    static void move(InputStream from, File to) {
         to.getParentFile().mkdirs();
         try (FileOutputStream out = new FileOutputStream(to)) {
             IOUtils.copy(from, out);
+        } catch (IOException e) {
+            AssetMoverAPI.LOGGER.fatal("Unexpected error occurred", e);
         }
     }
 
@@ -146,6 +149,8 @@ public class AssetMoverHelper {
             if (versionFile.exists()) {
                 try (BufferedReader br = new BufferedReader(new FileReader(versionFile))) {
                     versionObject = new JsonParser().parse(br).getAsJsonObject();
+                } catch (IOException e) {
+                    AssetMoverAPI.LOGGER.fatal("Unexpected error occurred while reading {} {}", version + ".json", e);
                 }
             } else {
                 if (VERSIONS_ARRAY == null) {
@@ -154,6 +159,8 @@ public class AssetMoverHelper {
                     con.setRequestProperty("User-Agent", USER_AGENT);
                     try (BufferedReader br = new BufferedReader(new InputStreamReader(con.getInputStream(), Charsets.UTF_8))) {
                         VERSIONS_ARRAY = new JsonParser().parse(br).getAsJsonObject().getAsJsonArray("versions");
+                    } catch (IOException e) {
+                        AssetMoverAPI.LOGGER.fatal("Unexpected error occurred while downloading versions manifest", e);
                     }
                 }
                 URL versionUrl = null;
@@ -168,12 +175,14 @@ public class AssetMoverHelper {
                     }
                 }
                 if (versionUrl == null) {
-                    throw new IllegalArgumentException("Version " + version + " is not present in manifest json");
+                    throw AssetMoverAPI.LOGGER.throwing(new IllegalArgumentException("Invalid version detected, " + version + " is not present in manifest json"));
                 }
                 HttpURLConnection con = (HttpURLConnection) versionUrl.openConnection();
                 con.setRequestProperty("User-Agent", USER_AGENT);
                 try (BufferedReader br = new BufferedReader(new InputStreamReader(con.getInputStream(), Charsets.UTF_8))) {
                     versionObject = new JsonParser().parse(br).getAsJsonObject();
+                } catch (IOException e) {
+                    AssetMoverAPI.LOGGER.fatal("Unexpected error occurred while downloading versions json", e);
                 }
             }
             info = new VersionAssetsInfo();
@@ -200,6 +209,8 @@ public class AssetMoverHelper {
                 if (versionIndexJson.exists()) {
                     try (BufferedReader br = new BufferedReader(new FileReader(versionIndexJson))) {
                         versionIndexJsonObject = new JsonParser().parse(br).getAsJsonObject().getAsJsonObject("objects");
+                    } catch (IOException e) {
+                        AssetMoverAPI.LOGGER.fatal("Unexpected error occurred while reading asset index json for version {} {}", assetVersion, e);
                     }
                 }
                 info.assetIndexAvailableLocally = true;
@@ -210,6 +221,8 @@ public class AssetMoverHelper {
                 con.setRequestProperty("User-Agent", USER_AGENT);
                 try (BufferedReader br = new BufferedReader(new InputStreamReader(con.getInputStream(), Charsets.UTF_8))) {
                     versionIndexJsonObject = new JsonParser().parse(br).getAsJsonObject().getAsJsonObject("objects");
+                } catch (IOException e) {
+                    AssetMoverAPI.LOGGER.fatal("Unexpected error occurred while downloading asset index json for version {} {}", assetVersion, e);
                 }
                 info.assetIndexAvailableLocally = false;
             }
