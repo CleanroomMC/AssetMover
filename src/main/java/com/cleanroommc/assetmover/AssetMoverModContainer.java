@@ -35,7 +35,7 @@ public class AssetMoverModContainer extends DummyModContainer {
 
     @Subscribe
     public void init(FMLInitializationEvent event) {
-        AssetMoverHelper.clear();
+        AssetMoverHelper.haltAndFlush();
     }
 
 }

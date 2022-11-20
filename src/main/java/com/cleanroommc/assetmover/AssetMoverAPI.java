@@ -62,32 +62,6 @@ public class AssetMoverAPI {
         }
     }
 
-    /*
-    public static void fromMinecraft(String mcVersion, Map<String, String> assets) {
-        for (Map.Entry<String, String> entry : assets.entrySet()) {
-            String target = entry.getValue();
-            if (!needsUpdating(target)) {
-                continue;
-            }
-            String source = entry.getKey();
-            Path existingPath = mcFiles.get(source);
-            if (existingPath == null) {
-                try {
-                    String urlString = String.format(mcAssetRepoUrl, mcVersion, source);
-                    URL url = new URL(urlString);
-                    Path targetPath = parentPath.resolve(target);
-                    download(url, targetPath);
-                    mcFiles.put(source, targetPath);
-                } catch (MalformedURLException e) {
-                    e.printStackTrace();
-                }
-            } else {
-                move(existingPath, parentPath.resolve(target));
-            }
-        }
-    }
-     */
-
     private static boolean needsUpdating(String asset) {
         return !Files.exists(PARENT_PATH.resolve(asset));
     }

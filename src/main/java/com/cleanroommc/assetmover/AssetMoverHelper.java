@@ -15,6 +15,9 @@ import java.net.URL;
 import java.nio.file.*;
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.jar.JarFile;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 public class AssetMoverHelper {
 
@@ -24,17 +27,24 @@ public class AssetMoverHelper {
     private static final String VERSIONS_MANIFEST = "https://launchermeta.mojang.com/mc/game/version_manifest.json";
     private static final String RESOURCES_URL = "http://resources.download.minecraft.net/";
 
-    private static final Map<String, Path> URL_FILES = new Object2ObjectOpenHashMap<>();
-    private static final Map<String, VersionAssetsInfo> VERSION_ASSET_INFO = new Object2ObjectOpenHashMap<>();
-    private static final Map<String, Map<String, String>> ASSET_MAPPING = new Object2ObjectOpenHashMap<>();
+    private static Map<String, Path> URL_FILES = new Object2ObjectOpenHashMap<>();
+    private static Map<String, VersionAssetsInfo> VERSION_ASSET_INFO = new Object2ObjectOpenHashMap<>();
+    private static Map<String, Map<String, String>> ASSET_MAPPING = new Object2ObjectOpenHashMap<>();
+    private static JsonArray VERSIONS_ARRAY = null;
 
-    private static JsonArray versionsArray = null;
-
-    static void clear() {
+    static void haltAndFlush() {
         AssetMoverAPI.LOGGER.info("Clearing cache...");
+
         URL_FILES.clear();
+        URL_FILES = null;
+
         VERSION_ASSET_INFO.clear();
-        versionsArray = null;
+        VERSION_ASSET_INFO = null;
+
+        ASSET_MAPPING.clear();
+        ASSET_MAPPING = null;
+
+        VERSIONS_ARRAY = null;
     }
 
     static void getMinecraftVersion(String version, Map<String, String> assets) throws IOException {
@@ -42,6 +52,10 @@ public class AssetMoverHelper {
         JsonObject versionObject = getVersionJson(version, versionsFolder);
         Map<String, String> remainingAssets = new Object2ObjectOpenHashMap<>(assets);
         getAssetIndexObjectsAndMove(version, versionObject, remainingAssets);
+        getClientJarAndMove(version, versionsFolder, versionObject, remainingAssets);
+        if (!remainingAssets.isEmpty()) {
+            // LOG
+        }
     }
 
     static Path getCurseForgeMod(String projectId, String fileId) throws IOException, URISyntaxException {
@@ -62,12 +76,12 @@ public class AssetMoverHelper {
     static Path getUrlMod(URL url, String tempFileName) throws IOException, URISyntaxException {
         HttpURLConnection con = (HttpURLConnection) url.openConnection();
         con.setRequestProperty("User-Agent", USER_AGENT);
-        Path file = downloadToTempFile(con.getInputStream(), tempFileName);
+        Path file = downloadToTempJar(con.getInputStream(), tempFileName);
         URL_FILES.put(url.toURI().toString(), file);
         return file;
     }
 
-    static Path downloadToTempFile(InputStream is, String fileName) throws IOException {
+    static Path downloadToTempJar(InputStream is, String fileName) throws IOException {
         Path tempFile = Files.createTempFile(fileName, ".jar");
         tempFile.toFile().deleteOnExit();
         Files.copy(is, tempFile, StandardCopyOption.REPLACE_EXISTING);
@@ -134,16 +148,16 @@ public class AssetMoverHelper {
                     versionObject = new JsonParser().parse(br).getAsJsonObject();
                 }
             } else {
-                if (versionsArray == null) {
+                if (VERSIONS_ARRAY == null) {
                     URL manifestUrl = new URL(VERSIONS_MANIFEST);
                     HttpURLConnection con = (HttpURLConnection) manifestUrl.openConnection();
                     con.setRequestProperty("User-Agent", USER_AGENT);
                     try (BufferedReader br = new BufferedReader(new InputStreamReader(con.getInputStream(), Charsets.UTF_8))) {
-                        versionsArray = new JsonParser().parse(br).getAsJsonObject().getAsJsonArray("versions");
+                        VERSIONS_ARRAY = new JsonParser().parse(br).getAsJsonObject().getAsJsonArray("versions");
                     }
                 }
                 URL versionUrl = null;
-                for (JsonElement versionElement : versionsArray) {
+                for (JsonElement versionElement : VERSIONS_ARRAY) {
                     if (versionElement instanceof JsonObject) {
                         JsonObject versionObj = versionElement.getAsJsonObject();
                         String id = versionObj.get("id").getAsString();
@@ -230,10 +244,36 @@ public class AssetMoverHelper {
         }
     }
 
+    private static void getClientJarAndMove(String version, File versionFolder, JsonObject versionObject, Map<String, String> assets) throws IOException {
+        VersionAssetsInfo info = VERSION_ASSET_INFO.get(version);
+        if (info == null) {
+            info = new VersionAssetsInfo();
+        }
+        Path clientJar;
+        if (info.clientJar != null) {
+            clientJar = info.clientJar;
+        } else {
+            File clientJarFile = new File(versionFolder, version + "/" + version + ".jar");
+            if (clientJarFile.exists()) {
+                clientJar = clientJarFile.toPath();
+            } else {
+                String url = versionObject.getAsJsonObject("downloads").get("url").getAsString();
+                URL clientJarUrl = new URL(url);
+                HttpURLConnection con = (HttpURLConnection) clientJarUrl.openConnection();
+                con.setRequestProperty("User-Agent", USER_AGENT);
+                clientJar = downloadToTempJar(con.getInputStream(), version + "-client");
+            }
+            info.clientJar = clientJar;
+        }
+        moveViaFilesystem(clientJar, assets);
+    }
+
     private static class VersionAssetsInfo {
 
         private JsonObject versionJson;
         private boolean assetIndexAvailableLocally;
+        private Path clientJar;
+
     }
 
     private enum OS {
