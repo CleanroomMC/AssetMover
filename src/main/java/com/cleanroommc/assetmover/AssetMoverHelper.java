@@ -44,7 +44,7 @@ public class AssetMoverHelper {
         VERSIONS_ARRAY = null;
     }
 
-    static void getMinecraftVersion(String version, Map<String, String> assets) throws IOException {
+    static void fromMinecraftVersion(String version, Map<String, String> assets) throws IOException {
         Map<String, String> assetsModifiable = new Object2ObjectOpenHashMap<>(assets);
         File versionsFolder = new File(getMinecraftDirectory(), "versions");
         JsonObject versionObject = getVersionJson(version, versionsFolder);

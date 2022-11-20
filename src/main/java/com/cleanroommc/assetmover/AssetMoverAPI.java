@@ -23,9 +23,9 @@ public class AssetMoverAPI {
             return;
         }
         try {
-            AssetMoverHelper.getMinecraftVersion(version, assets);
+            AssetMoverHelper.fromMinecraftVersion(version, assets);
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.fatal("Unexpected error occured", e);
         }
     }
 
@@ -38,7 +38,7 @@ public class AssetMoverAPI {
             Path file = AssetMoverHelper.getCurseForgeMod(projectId, fileId);
             AssetMoverHelper.moveViaFilesystem(file, assets);
         } catch (IOException | URISyntaxException e) {
-            e.printStackTrace();
+            LOGGER.fatal("Unexpected error occured", e);
         }
     }
 
@@ -46,7 +46,7 @@ public class AssetMoverAPI {
         try {
             fromUrlMod(new URL(url), assets);
         } catch (MalformedURLException e) {
-            e.printStackTrace();
+            LOGGER.fatal("Unexpected error occured", e);
         }
     }
 
@@ -58,7 +58,7 @@ public class AssetMoverAPI {
             Path file = AssetMoverHelper.getUrlMod(url, url.getFile());
             AssetMoverHelper.moveViaFilesystem(file, assets);
         } catch (IOException | URISyntaxException e) {
-            e.printStackTrace();
+            LOGGER.fatal("Unexpected error occured", e);
         }
     }
 
