@@ -70,10 +70,9 @@ public enum AssetMoverHelper {
 
     static void fromMinecraftVersion(String version, Map<String, String> assets) throws IOException {
         File mcFolder = getMinecraftDirectory();
-        Map<String, String> assetsModifiable = new Object2ObjectOpenHashMap<>(assets);
         File versionsFolder = new File(mcFolder, "versions");
         JsonObject versionObject = getVersionJson(version, versionsFolder);
-        scanAndMoveMinecraftAssets(version, mcFolder, versionsFolder, versionObject, assetsModifiable);
+        scanAndMoveMinecraftAssets(version, mcFolder, versionsFolder, versionObject, assets);
     }
 
     static Path getCurseForgeMod(String projectId, String fileId) throws IOException, URISyntaxException {
