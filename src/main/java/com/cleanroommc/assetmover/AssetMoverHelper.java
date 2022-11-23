@@ -253,7 +253,7 @@ public enum AssetMoverHelper {
                 if (clientJarFile.exists()) {
                     clientJar = clientJarFile.toPath();
                 } else {
-                    String url = versionObject.getAsJsonObject("downloads").get("url").getAsString();
+                    String url = versionObject.getAsJsonObject("downloads").getAsJsonObject("client").get("url").getAsString();
                     try {
                         long start = System.currentTimeMillis();
                         URL clientJarUrl = new URL(url);
