@@ -15,7 +15,7 @@ import java.util.Map;
 
 public class AssetMoverAPI {
 
-    public static final String VERSION = "2.1";
+    public static final String VERSION = "2.2";
 
     static final Logger LOGGER = LogManager.getLogger("AssetMover");
     static final Path PARENT_PATH = Paths.get("").resolve("assetmover");

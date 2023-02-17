@@ -15,12 +15,12 @@
 ```
 repositories {
     maven {
-        url "https://maven.cleanroommc.com"
+        url 'https://maven.cleanroommc.com'
     }
 }
 
 dependencies {
-    deobfCompile ("com.cleanroommc:assetmover:0.2")
+    compile 'com.cleanroommc:assetmover:2.2'
 }
 ```
 
