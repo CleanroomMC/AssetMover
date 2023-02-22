@@ -28,7 +28,7 @@ public enum AssetMoverHelper {
 
     private static final String USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36 Edg/107.0.1418.42";
     private static final String VERSIONS_MANIFEST = "https://launchermeta.mojang.com/mc/game/version_manifest.json";
-    private static final String RESOURCES_URL = "http://resources.download.minecraft.net/";
+    private static final String RESOURCES_URL = "https://resources.download.minecraft.net/";
 
     private static ExecutorService EXECUTOR;
     private static Map<String, Path> URL_FILES = new Object2ObjectOpenHashMap<>();
