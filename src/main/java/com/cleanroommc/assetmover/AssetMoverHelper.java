@@ -72,7 +72,11 @@ public enum AssetMoverHelper {
         File mcFolder = getMinecraftDirectory();
         File versionsFolder = new File(mcFolder, "versions");
         JsonObject versionObject = getVersionJson(version, versionsFolder);
-        scanAndMoveMinecraftAssets(version, mcFolder, versionsFolder, versionObject, assets);
+        if (versionObject != null) {
+            scanAndMoveMinecraftAssets(version, mcFolder, versionsFolder, versionObject, assets);
+        } else {
+            AssetMoverAPI.LOGGER.fatal("Could not get assets from Minecraft {}", version);
+        }
     }
 
     static Path getCurseForgeMod(String projectId, String fileId) throws IOException, URISyntaxException {
