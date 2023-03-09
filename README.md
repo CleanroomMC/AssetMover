@@ -24,4 +24,4 @@ dependencies {
 }
 ```
 
-2. Use `AssetMoverAPI`. Make sure you use these methods before `FMLInitializationEvent` is fired, anything later would be too late.
+2. Use `AssetMoverAPI`. Make sure you use these methods during `FMLConstructionEvent` or before it. Any later and it would be too late.
