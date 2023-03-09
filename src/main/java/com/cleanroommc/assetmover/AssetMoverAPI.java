@@ -7,6 +7,7 @@ import net.minecraftforge.fml.common.LoaderState;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import javax.net.ssl.SSLHandshakeException;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
@@ -17,7 +18,7 @@ import java.util.Map;
 
 public class AssetMoverAPI {
 
-    public static final String VERSION = "2.3";
+    public static final String VERSION = "2.4";
 
     static final Logger LOGGER = LogManager.getLogger("AssetMover");
     static final Path PARENT_PATH = Paths.get("").resolve("assetmover");
@@ -30,6 +31,8 @@ public class AssetMoverAPI {
         }
         try {
             AssetMoverHelper.fromMinecraftVersion(version, assets);
+        } catch (SSLHandshakeException e) {
+            LOGGER.fatal("Unexpected error occurred, perhaps update your Java version?", e);
         } catch (IOException e) {
             LOGGER.fatal("Unexpected error occurred", e);
         }
@@ -45,6 +48,8 @@ public class AssetMoverAPI {
         try {
             Path file = AssetMoverHelper.getCurseForgeMod(projectId, fileId);
             AssetMoverHelper.moveViaFilesystem(file, assets);
+        } catch (SSLHandshakeException e) {
+            LOGGER.fatal("Unexpected error occurred, perhaps update your Java version?", e);
         } catch (IOException | URISyntaxException e) {
             LOGGER.fatal("Unexpected error occurred", e);
         }
@@ -68,6 +73,8 @@ public class AssetMoverAPI {
         try {
             Path file = AssetMoverHelper.getFileFromUrl(url, url.getFile());
             AssetMoverHelper.moveViaFilesystem(file, assets);
+        } catch (SSLHandshakeException e) {
+            LOGGER.fatal("Unexpected error occurred, perhaps update your Java version?", e);
         } catch (IOException | URISyntaxException e) {
             LOGGER.fatal("Unexpected error occurred", e);
         }
