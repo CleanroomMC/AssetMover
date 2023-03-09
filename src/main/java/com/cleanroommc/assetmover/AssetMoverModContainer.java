@@ -1,9 +1,7 @@
 package com.cleanroommc.assetmover;
 
 import com.google.common.eventbus.EventBus;
-import com.google.common.eventbus.Subscribe;
 import net.minecraftforge.fml.common.*;
-import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 
 import java.util.Collections;
 
@@ -31,11 +29,6 @@ public class AssetMoverModContainer extends DummyModContainer {
     public boolean registerBus(EventBus bus, LoadController controller) {
         bus.register(this);
         return true;
-    }
-
-    @Subscribe
-    public void init(FMLInitializationEvent event) {
-        AssetMoverHelper.haltAndFlush();
     }
 
 }

@@ -2,6 +2,8 @@ package com.cleanroommc.assetmover;
 
 import io.netty.util.internal.UnstableApi;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import net.minecraftforge.fml.common.Loader;
+import net.minecraftforge.fml.common.LoaderState;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -21,6 +23,7 @@ public class AssetMoverAPI {
     static final Path PARENT_PATH = Paths.get("").resolve("assetmover");
 
     public static void fromMinecraft(String version, Map<String, String> assets) {
+        validateLoadingState();
         assets = new Object2ObjectOpenHashMap<>(assets);
         if (isUpdated(assets)) {
             return;
@@ -34,6 +37,7 @@ public class AssetMoverAPI {
 
     @UnstableApi
     public static void fromCurseForgeMod(String projectId, String fileId, Map<String, String> assets) {
+        validateLoadingState();
         assets = new Object2ObjectOpenHashMap<>(assets);
         if (isUpdated(assets)) {
             return;
@@ -47,6 +51,7 @@ public class AssetMoverAPI {
     }
 
     public static void fromUrlFile(String url, Map<String, String> assets) {
+        validateLoadingState();
         try {
             fromUrlFile(new URL(url), assets);
         } catch (MalformedURLException e) {
@@ -55,6 +60,7 @@ public class AssetMoverAPI {
     }
 
     public static void fromUrlFile(URL url, Map<String, String> assets) {
+        validateLoadingState();
         assets = new Object2ObjectOpenHashMap<>(assets);
         if (isUpdated(assets)) {
             return;
@@ -64,6 +70,12 @@ public class AssetMoverAPI {
             AssetMoverHelper.moveViaFilesystem(file, assets);
         } catch (IOException | URISyntaxException e) {
             LOGGER.fatal("Unexpected error occurred", e);
+        }
+    }
+
+    private static void validateLoadingState() {
+        if (Loader.instance().hasReachedState(LoaderState.PREINITIALIZATION)) {
+            throw new RuntimeException("AssetMover operations can only be performed during FMLConstructionEvent or earlier!");
         }
     }
 

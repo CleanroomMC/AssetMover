@@ -11,6 +11,7 @@ import net.minecraftforge.fml.common.ModContainer;
 
 import java.awt.image.BufferedImage;
 import java.io.*;
+import java.util.Set;
 
 public class InternalResourcePack extends FolderResourcePack implements FMLContainerHolder {
 
@@ -29,6 +30,12 @@ public class InternalResourcePack extends FolderResourcePack implements FMLConta
     @Override
     public String getPackName() {
         return "AssetMoverPack";
+    }
+
+    @Override
+    public Set<String> getResourceDomains() {
+        AssetMoverHelper.haltAndFlush();
+        return super.getResourceDomains();
     }
 
     @Override
