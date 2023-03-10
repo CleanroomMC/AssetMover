@@ -56,15 +56,9 @@ public enum AssetMoverHelper {
         }
         AssetMoverAPI.LOGGER.info("Clearing cache...");
 
-        URL_FILES.clear();
         URL_FILES = null;
-
-        VERSION_ASSET_INFO.clear();
         VERSION_ASSET_INFO = null;
-
-        ASSET_MAPPING.clear();
         ASSET_MAPPING = null;
-
         VERSIONS_ARRAY = null;
     }
 
