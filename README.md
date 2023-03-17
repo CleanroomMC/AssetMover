@@ -20,7 +20,7 @@ repositories {
 }
 
 dependencies {
-    compile 'com.cleanroommc:assetmover:2.2'
+    compile 'com.cleanroommc:assetmover:2.5'
 }
 ```
 
