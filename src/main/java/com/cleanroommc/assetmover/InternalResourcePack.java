@@ -34,7 +34,13 @@ public class InternalResourcePack extends FolderResourcePack implements FMLConta
 
     @Override
     public Set<String> getResourceDomains() {
-        AssetMoverHelper.haltAndFlush();
+        try {
+            /** Ensures that another mod doesn't run {@link AssetMoverHelper#haltAndFlush} too early. */
+            AssetMoverAPI.validateLoadingState();
+        } catch (RuntimeException e) {
+            /** Called by {@link net.minecraftforge.fml.client.FMLClientHandler#beginMinecraftLoading}. */
+            AssetMoverHelper.haltAndFlush();
+        }
         return super.getResourceDomains();
     }
 
