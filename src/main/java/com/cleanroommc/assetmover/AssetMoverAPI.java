@@ -80,7 +80,7 @@ public class AssetMoverAPI {
         }
     }
 
-    private static void validateLoadingState() {
+    static void validateLoadingState() {
         if (Loader.instance().hasReachedState(LoaderState.PREINITIALIZATION)) {
             throw new RuntimeException("AssetMover operations can only be performed during FMLConstructionEvent or earlier!");
         }
