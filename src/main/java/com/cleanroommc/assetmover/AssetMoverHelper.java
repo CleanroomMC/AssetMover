@@ -112,7 +112,7 @@ public enum AssetMoverHelper {
             versionObject = info.versionJson;
         }
         if (versionObject == null) {
-            File versionFile = new File(versionsFolder, version + ".json");
+            File versionFile = new File(versionsFolder, version + "/" + version + ".json");
             if (versionFile.exists()) {
                 try (BufferedReader br = new BufferedReader(new FileReader(versionFile))) {
                     versionObject = new JsonParser().parse(br).getAsJsonObject();
