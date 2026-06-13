@@ -56,9 +56,9 @@ public enum AssetMoverHelper {
         }
         AssetMoverAPI.LOGGER.info("Clearing cache...");
 
-        URL_FILES = null;
-        VERSION_ASSET_INFO = null;
-        ASSET_MAPPING = null;
+        URL_FILES = new Object2ObjectOpenHashMap<>();
+        VERSION_ASSET_INFO = new Object2ObjectOpenHashMap<>();
+        ASSET_MAPPING = new Object2ObjectOpenHashMap<>();
         VERSIONS_ARRAY = null;
     }
 
