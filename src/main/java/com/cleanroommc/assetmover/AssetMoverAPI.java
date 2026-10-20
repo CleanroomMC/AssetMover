@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2022-2026 CleanroomMC contributors
+ * SPDX-License-Identifier: LGPL-3.0-only
+ */
+
 package com.cleanroommc.assetmover;
 
 import io.netty.util.internal.UnstableApi;
@@ -12,7 +17,9 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.nio.file.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Iterator;
 import java.util.Map;
 

@@ -1,7 +1,14 @@
+/*
+ * Copyright (c) 2022-2026 CleanroomMC contributors
+ * SPDX-License-Identifier: LGPL-3.0-only
+ */
+
 package com.cleanroommc.assetmover;
 
 import com.google.common.eventbus.EventBus;
-import net.minecraftforge.fml.common.*;
+import net.minecraftforge.fml.common.DummyModContainer;
+import net.minecraftforge.fml.common.LoadController;
+import net.minecraftforge.fml.common.ModMetadata;
 
 import java.util.Collections;
 

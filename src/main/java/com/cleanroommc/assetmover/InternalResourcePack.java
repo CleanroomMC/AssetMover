@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2022-2026 CleanroomMC contributors
+ * SPDX-License-Identifier: LGPL-3.0-only
+ */
+
 package com.cleanroommc.assetmover;
 
 import com.google.gson.JsonObject;
@@ -10,7 +15,8 @@ import net.minecraftforge.fml.common.FMLContainerHolder;
 import net.minecraftforge.fml.common.ModContainer;
 
 import java.awt.image.BufferedImage;
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
 import java.util.Set;
 
 public class InternalResourcePack extends FolderResourcePack implements FMLContainerHolder {
