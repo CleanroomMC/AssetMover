@@ -375,7 +375,7 @@ public enum AssetMoverHelper {
         return String.format(Locale.ROOT, "%.4g", value) + suffix;
     }
 
-    private static class VersionAssetsInfo {
+    private static final class VersionAssetsInfo {
 
         private JsonObject versionJson;
         private boolean assetIndexAvailableLocally;

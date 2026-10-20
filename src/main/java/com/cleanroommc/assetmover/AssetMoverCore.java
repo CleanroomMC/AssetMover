@@ -7,8 +7,8 @@ package com.cleanroommc.assetmover;
 
 import net.minecraftforge.common.ForgeVersion;
 import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
+import org.jspecify.annotations.Nullable;
 
-import javax.annotation.Nullable;
 import java.util.Map;
 
 @IFMLLoadingPlugin.Name("AssetMover")
