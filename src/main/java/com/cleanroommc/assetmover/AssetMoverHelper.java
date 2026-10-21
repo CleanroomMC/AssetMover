@@ -35,9 +35,9 @@ public final class AssetMoverHelper {
 
     private static final String USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36 Edg/107.0.1418.42";
 
-    public static String curseForge(String projectId, String fileId) throws IOException {
-        return json("https://api.curse.tools/v1/cf/mods/" + projectId + "/files/" + fileId)
-            .getAsJsonObject("data").get("downloadUrl").getAsString();
+    public static String curseForge(String projectId, String fileId) {
+        String artifact = "curse-" + projectId;
+        return "https://curse.cleanroommc.com/curse/maven/" + artifact + "/" + fileId + "/" + artifact + "-" + fileId + ".jar";
     }
 
     public static String modrinth(String projectId, String versionId) throws IOException {
