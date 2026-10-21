@@ -14,4 +14,4 @@ permissions:
 
 jobs:
   build:
-    uses: CleanroomMC/Conventions/.github/workflows/build.yml@1.4.2
+    uses: CleanroomMC/Conventions/.github/workflows/build.yml@1.4.4
