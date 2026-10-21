@@ -33,21 +33,23 @@ public interface AssetMoverAPI {
     AssetRequest fromModSite(ModSite site, String projectId, String fileId);
 
     /**
-     * The source archive of a GitHub repository at a branch, tag or commit.
-     * <p>Paths are relative to the repository root, e.g. {@code fromGitHub("Mojang/bedrock-samples", "v1.21.0.3")}.
+     * The source archive of a git repository at a branch, tag or commit.
+     * <p>Paths are relative to the repository root, e.g. {@code fromGit(GitHost.GITHUB, "Mojang/bedrock-samples", "v1.21.0.3")}.
+     * <p>Forges build these archives on demand and do not promise the same bytes each time, so
+     * {@link AssetRequest#verify(String)} may start failing for no fault of the repository.
      *
-     * @param repository {@code owner/name}
+     * @param repository the path of the repository on the host, e.g. {@code owner/name} or {@code group/subgroup/name}
      */
-    AssetRequest fromGitHub(String repository, String ref);
+    AssetRequest fromGit(GitHost host, String repository, String ref);
 
     /**
-     * An archive attached to a GitHub release.
+     * An archive attached to a release.
      *
-     * @param repository {@code owner/name}
+     * @param repository the path of the repository on the host, e.g. {@code owner/name}
      * @param tag        the tag the release was made from
      * @param fileName   the name of the attached file, e.g. {@code "mymod-1.0.0.jar"}
      */
-    AssetRequest fromGitHubRelease(String repository, String tag, String fileName);
+    AssetRequest fromGitRelease(GitHost host, String repository, String tag, String fileName);
 
     /**
      * An artifact from any maven repository.

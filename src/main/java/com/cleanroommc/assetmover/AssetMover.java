@@ -7,6 +7,7 @@ package com.cleanroommc.assetmover;
 
 import com.cleanroommc.assetmover.api.AssetMoverAPI;
 import com.cleanroommc.assetmover.api.AssetRequest;
+import com.cleanroommc.assetmover.api.GitHost;
 import com.cleanroommc.assetmover.api.ModSite;
 import com.cleanroommc.assetmover.api.MoveAssetEvent;
 import com.cleanroommc.assetmover.api.SingleAssetRequest;
@@ -75,7 +76,7 @@ final class AssetMover implements AssetMoverAPI {
 
     @Override
     public AssetRequest fromBedrock(String version) {
-        return fromGitHub("Mojang/bedrock-samples", "v" + version);
+        return fromGit(GitHost.GITHUB, "Mojang/bedrock-samples", "v" + version);
     }
 
     @Override
@@ -84,13 +85,13 @@ final class AssetMover implements AssetMoverAPI {
     }
 
     @Override
-    public AssetRequest fromGitHub(String repository, String ref) {
-        return fromUrl("https://github.com/" + repository + "/archive/" + ref + ".zip");
+    public AssetRequest fromGit(GitHost host, String repository, String ref) {
+        return new Archive(Arrays.asList(host, repository, ref), () -> host.archiveUrl(repository, ref));
     }
 
     @Override
-    public AssetRequest fromGitHubRelease(String repository, String tag, String fileName) {
-        return fromUrl("https://github.com/" + repository + "/releases/download/" + tag + "/" + fileName);
+    public AssetRequest fromGitRelease(GitHost host, String repository, String tag, String fileName) {
+        return new Archive(Arrays.asList(host, repository, tag, fileName), () -> host.releaseUrl(repository, tag, fileName));
     }
 
     @Override

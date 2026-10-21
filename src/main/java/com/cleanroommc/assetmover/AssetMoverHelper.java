@@ -5,6 +5,7 @@
 
 package com.cleanroommc.assetmover;
 
+import com.cleanroommc.assetmover.api.GitHost;
 import com.google.common.io.BaseEncoding;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -19,6 +20,7 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -46,6 +48,51 @@ public final class AssetMoverHelper {
             }
         }
         return files.get(0).getAsJsonObject().get("url").getAsString();
+    }
+
+    public static GitHost gitea(String url) {
+        String host = url.endsWith("/") ? url.substring(0, url.length() - 1) : url;
+        return new GitHost() {
+
+            @Override
+            public String archiveUrl(String repository, String ref) {
+                return host + "/" + repository + "/archive/" + ref + ".zip";
+            }
+
+            @Override
+            public String releaseUrl(String repository, String tag, String fileName) {
+                return host + "/" + repository + "/releases/download/" + tag + "/" + fileName;
+            }
+
+        };
+    }
+
+    public static GitHost gitlab(String url) {
+        String host = url.endsWith("/") ? url.substring(0, url.length() - 1) : url;
+        return new GitHost() {
+
+            @Override
+            public String archiveUrl(String repository, String ref) {
+                String name = repository.substring(repository.lastIndexOf('/') + 1);
+                return host + "/" + repository + "/-/archive/" + ref + "/" + name + "-" + ref.replace('/', '-') + ".zip";
+            }
+
+            // GitLab release files are links rather than uploads, so they are looked up by name
+            @Override
+            public String releaseUrl(String repository, String tag, String fileName) throws IOException {
+                JsonObject release = json(host + "/api/v4/projects/" + URLEncoder.encode(repository, "UTF-8")
+                    + "/releases/" + URLEncoder.encode(tag, "UTF-8"));
+                for (JsonElement element : release.getAsJsonObject("assets").getAsJsonArray("links")) {
+                    JsonObject link = element.getAsJsonObject();
+                    if (fileName.equals(link.get("name").getAsString())) {
+                        JsonElement direct = link.get("direct_asset_url");
+                        return (direct != null ? direct : link.get("url")).getAsString();
+                    }
+                }
+                throw new IOException("Release " + tag + " of " + repository + " has no file named " + fileName);
+            }
+
+        };
     }
 
     static JsonObject json(String url) throws IOException {
