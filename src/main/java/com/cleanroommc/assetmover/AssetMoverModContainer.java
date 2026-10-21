@@ -22,7 +22,7 @@ public class AssetMoverModContainer extends DummyModContainer {
         metadata.modId = "assetmover";
         metadata.name = "AssetMover";
         metadata.description = "Allows acquiring of vanilla/mod assets at runtime without potentially violating licenses.";
-        metadata.version = AssetMoverAPI.VERSION;
+        metadata.version = "@{VERSION}";
         metadata.url = "https://github.com/CleanroomMC/AssetMover";
         metadata.authorList = Collections.singletonList("CleanroomMC");
         metadata.credits = "Rongmario";

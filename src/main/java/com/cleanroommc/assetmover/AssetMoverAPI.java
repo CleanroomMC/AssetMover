@@ -31,7 +31,7 @@ import java.util.function.Consumer;
 @Deprecated
 public final class AssetMoverAPI {
 
-    public static final String VERSION = "2.5";
+    public static final String VERSION = "@{VERSION}";
 
     private static final List<Consumer<com.cleanroommc.assetmover.api.AssetMoverAPI>> LEGACY_REQUESTS = new ArrayList<>();
 

@@ -108,23 +108,28 @@ final class AssetMover implements AssetMoverAPI {
 
     @Override
     public AssetRequest fromBedrock(String version) {
-        return fromGit(GitHost.GITHUB, "Mojang/bedrock-samples", "v" + version);
+        return new Archive(
+            "bedrock", Arrays.asList("bedrock", version),
+            () -> GitHost.GITHUB.archiveUrl("Mojang/bedrock-samples", "v" + version)
+        );
     }
 
     @Override
     public AssetRequest fromModSite(ModSite site, String projectId, String fileId) {
-        return new Archive(Arrays.asList(site, projectId, fileId), () -> site.downloadUrl(projectId, fileId));
+        return new Archive(
+            "mod-site", Arrays.asList(site, projectId, fileId), () -> site.downloadUrl(projectId, fileId)
+        );
     }
 
     @Override
     public AssetRequest fromGit(GitHost host, String repository, String ref) {
-        return new Archive(Arrays.asList(host, repository, ref), () -> host.archiveUrl(repository, ref));
+        return new Archive("git", Arrays.asList(host, repository, ref), () -> host.archiveUrl(repository, ref));
     }
 
     @Override
     public AssetRequest fromGitRelease(GitHost host, String repository, String tag, String fileName) {
         return new Archive(
-            Arrays.asList(host, repository, tag, fileName), () -> host.releaseUrl(repository, tag, fileName)
+            "git", Arrays.asList(host, repository, tag, fileName), () -> host.releaseUrl(repository, tag, fileName)
         );
     }
 
@@ -142,10 +147,9 @@ final class AssetMover implements AssetMoverAPI {
         }
         String classifier = parts.length == 4 ? "-" + parts[3] : "";
         String repository = repositoryUrl.endsWith("/") ? repositoryUrl : repositoryUrl + "/";
-        return fromUrl(
-            repository + parts[0].replace('.', '/') + "/" + parts[1] + "/" + parts[2] + "/" + parts[1] + "-" +
-                parts[2] + classifier + "." + extension
-        );
+        String url = repository + parts[0].replace('.', '/') + "/" + parts[1] + "/" + parts[2] + "/" + parts[1] + "-" +
+            parts[2] + classifier + "." + extension;
+        return new Archive("maven", Arrays.asList("url", url), () -> url);
     }
 
     @Override
@@ -155,7 +159,7 @@ final class AssetMover implements AssetMoverAPI {
 
     @Override
     public AssetRequest fromUrl(String archiveUrl) {
-        return new Archive(Arrays.asList("url", archiveUrl), () -> archiveUrl);
+        return new Archive("url", Arrays.asList("url", archiveUrl), () -> archiveUrl);
     }
 
     @Override
@@ -285,10 +289,12 @@ final class AssetMover implements AssetMoverAPI {
 
     private final class Archive extends Assets {
 
+        private final String type;
         private final List<?> source;
         private final Callable<String> url;
 
-        Archive(List<?> source, Callable<String> url) {
+        Archive(String type, List<?> source, Callable<String> url) {
+            this.type = type;
             this.source = source;
             this.url = url;
         }
@@ -300,7 +306,7 @@ final class AssetMover implements AssetMoverAPI {
 
         @Override
         CompletableFuture<?> start(Map<String, String> pending) {
-            return shared(source, () -> AssetMoverHelper.download(url.call())).thenCompose(file -> async(() -> {
+            return shared(source, () -> AssetMoverHelper.download(url.call(), type)).thenCompose(file -> async(() -> {
                 AssetMoverHelper.verify(file, algorithm, checksum);
                 extract(file, pending, this);
                 return null;
@@ -361,12 +367,11 @@ final class AssetMover implements AssetMoverAPI {
                 return shared(Arrays.asList("java", version), () -> AssetMoverHelper.json(local));
             }
             return shared(
-                Arrays.asList("manifest"),
-                () -> AssetMoverHelper.json(VERSION_MANIFEST)
+                Arrays.asList("manifest"), () -> AssetMoverHelper.json(VERSION_MANIFEST, "java")
             ).thenCompose(manifest -> shared(Arrays.asList("java", version), () -> {
                 for (JsonElement entry : manifest.getAsJsonArray("versions")) {
                     if (version.equals(entry.getAsJsonObject().get("id").getAsString())) {
-                        return AssetMoverHelper.json(entry.getAsJsonObject().get("url").getAsString());
+                        return AssetMoverHelper.json(entry.getAsJsonObject().get("url").getAsString(), "java");
                     }
                 }
                 throw new IOException("Minecraft " + version + " is not in the version manifest");
@@ -378,7 +383,7 @@ final class AssetMover implements AssetMoverAPI {
             String id = info.get("id").getAsString();
             Path local = minecraft.resolve("assets").resolve("indexes").resolve(id + ".json");
             return shared(Arrays.asList("index", id), () -> {
-                JsonObject index = Files.exists(local) ? AssetMoverHelper.json(local) : AssetMoverHelper.json(info.get("url").getAsString());
+                JsonObject index = Files.exists(local) ? AssetMoverHelper.json(local) : AssetMoverHelper.json(info.get("url").getAsString(), "java");
                 return index.getAsJsonObject("objects");
             });
         }
@@ -387,7 +392,7 @@ final class AssetMover implements AssetMoverAPI {
             Path local = minecraft.resolve("assets").resolve("objects").resolve(hash.substring(0, 2)).resolve(hash);
             Path file = Files.exists(local) && AssetMoverHelper.matches(local, "SHA-1", hash)
                 ? local
-                : AssetMoverHelper.download(RESOURCES + hash.substring(0, 2) + "/" + hash);
+                : AssetMoverHelper.download(RESOURCES + hash.substring(0, 2) + "/" + hash, "java");
             AssetMoverHelper.verify(file, "SHA-1", hash);
             AssetMoverHelper.copy(file, destination);
         }
@@ -397,7 +402,7 @@ final class AssetMover implements AssetMoverAPI {
             String sha1 = client.get("sha1").getAsString();
             Path local = minecraft.resolve("versions").resolve(version).resolve(version + ".jar");
             return shared(Arrays.asList("client", version), () -> {
-                Path jar = Files.exists(local) && AssetMoverHelper.matches(local, "SHA-1", sha1) ? local : AssetMoverHelper.download(client.get("url").getAsString());
+                Path jar = Files.exists(local) && AssetMoverHelper.matches(local, "SHA-1", sha1) ? local : AssetMoverHelper.download(client.get("url").getAsString(), "java");
                 AssetMoverHelper.verify(jar, "SHA-1", sha1);
                 return jar;
             });
@@ -444,7 +449,7 @@ final class AssetMover implements AssetMoverAPI {
                 return CompletableFuture.completedFuture(null);
             }
             return async(() -> {
-                Path file = AssetMoverHelper.download(url);
+                Path file = AssetMoverHelper.download(url, "url");
                 AssetMoverHelper.verify(file, algorithm, checksum);
                 AssetMoverHelper.copy(file, to);
                 return null;

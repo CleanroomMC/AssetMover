@@ -30,11 +30,13 @@ import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Locale;
+import java.util.concurrent.TimeUnit;
 
 @ApiStatus.Internal
 public final class AssetMoverHelper {
 
-    private static final String USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36 Edg/107.0.1418.42";
+    private static final String USER_AGENT = "CleanroomMC/AssetMover/@{VERSION} (+https://github.com/CleanroomMC/AssetMover)";
+    private static final int DEFAULT_TIMEOUT_SECONDS = 30;
 
     private AssetMoverHelper() { }
 
@@ -46,7 +48,8 @@ public final class AssetMoverHelper {
 
     public static String modrinth(String projectId, String versionId) throws IOException {
         JsonArray files = json(
-            "https://api.modrinth.com/v2/project/" + projectId + "/version/" + versionId
+            "https://api.modrinth.com/v2/project/" + projectId + "/version/" + versionId,
+            "mod-site"
         ).getAsJsonArray("files");
         for (JsonElement file : files) {
             if (file.getAsJsonObject().get("primary").getAsBoolean()) {
@@ -89,7 +92,8 @@ public final class AssetMoverHelper {
             public String releaseUrl(String repository, String tag, String fileName) throws IOException {
                 JsonObject release = json(
                     host + "/api/v4/projects/" + URLEncoder.encode(repository, "UTF-8") + "/releases/" +
-                        URLEncoder.encode(tag, "UTF-8")
+                        URLEncoder.encode(tag, "UTF-8"),
+                    "git"
                 );
                 for (JsonElement element : release.getAsJsonObject("assets").getAsJsonArray("links")) {
                     JsonObject link = element.getAsJsonObject();
@@ -104,8 +108,8 @@ public final class AssetMoverHelper {
         };
     }
 
-    static JsonObject json(String url) throws IOException {
-        try (Reader reader = new InputStreamReader(open(url), StandardCharsets.UTF_8)) {
+    static JsonObject json(String url, String source) throws IOException {
+        try (Reader reader = new InputStreamReader(open(url, source), StandardCharsets.UTF_8)) {
             return new JsonParser().parse(reader).getAsJsonObject();
         }
     }
@@ -116,11 +120,11 @@ public final class AssetMoverHelper {
         }
     }
 
-    static Path download(String url) throws IOException {
+    static Path download(String url, String source) throws IOException {
         long start = System.currentTimeMillis();
         Path file = Files.createTempFile("assetmover", null);
         file.toFile().deleteOnExit();
-        try (InputStream in = open(url)) {
+        try (InputStream in = open(url, source)) {
             Files.copy(in, file, StandardCopyOption.REPLACE_EXISTING);
         }
         AssetMover.LOGGER.info("Downloaded {} in {} ms", url, System.currentTimeMillis() - start);
@@ -175,8 +179,16 @@ public final class AssetMoverHelper {
         return Paths.get(home, ".minecraft");
     }
 
-    private static InputStream open(String url) throws IOException {
+    /**
+     * Connect and read timeouts come from {@code cleanroom.asset-mover.<source>.timeout}, in seconds.
+     */
+    private static InputStream open(String url, String source) throws IOException {
+        int timeout = (int) TimeUnit.SECONDS.toMillis(Integer.getInteger(
+            "cleanroom.asset-mover." + source + ".timeout", DEFAULT_TIMEOUT_SECONDS
+        ));
         HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
+        connection.setConnectTimeout(timeout);
+        connection.setReadTimeout(timeout);
         connection.setRequestProperty("User-Agent", USER_AGENT);
         return connection.getInputStream();
     }

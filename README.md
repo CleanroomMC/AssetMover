@@ -36,3 +36,16 @@ public void onMoveAssets(MoveAssetEvent event) {
         .move("assets/jei/lang/en_us.lang", "assets/jei/lang/de_de.lang");
 }
 ```
+
+### Timeouts
+
+Each download gives up after 30 seconds without a connection or without data. Override it per source with a system property, in seconds:
+
+| Property                                  | Source                                  |
+|-------------------------------------------|-----------------------------------------|
+| `cleanroom.asset-mover.java.timeout`      | `fromJava`                              |
+| `cleanroom.asset-mover.bedrock.timeout`   | `fromBedrock`                           |
+| `cleanroom.asset-mover.mod-site.timeout`  | `fromModSite`                           |
+| `cleanroom.asset-mover.git.timeout`       | `fromGit`, `fromGitRelease`             |
+| `cleanroom.asset-mover.maven.timeout`     | `fromMaven`, `fromMavenCentral`         |
+| `cleanroom.asset-mover.url.timeout`       | `fromUrl`, `fromUrlFile`                |

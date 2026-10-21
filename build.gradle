@@ -12,6 +12,10 @@ conventions {
     repositoryUrl = 'https://github.com/CleanroomMC/AssetMover'
 }
 
+tokenEnvoy {
+    set 'VERSION', project.version
+}
+
 minecraft {
     mcVersion = '1.12.2'
     mcpMappingChannel = 'stable'
