@@ -6,6 +6,7 @@
 package com.cleanroommc.assetmover;
 
 import com.google.common.eventbus.EventBus;
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.DummyModContainer;
 import net.minecraftforge.fml.common.LoadController;
 import net.minecraftforge.fml.common.ModMetadata;
@@ -35,6 +36,7 @@ public class AssetMoverModContainer extends DummyModContainer {
     @Override
     public boolean registerBus(EventBus bus, LoadController controller) {
         bus.register(this);
+        MinecraftForge.EVENT_BUS.register(AssetMoverAPI.class);
         return true;
     }
 

@@ -10,12 +10,10 @@ import net.minecraft.client.renderer.texture.TextureUtil;
 import net.minecraft.client.resources.FolderResourcePack;
 import net.minecraft.client.resources.data.IMetadataSection;
 import net.minecraft.client.resources.data.MetadataSerializer;
-import net.minecraft.launchwrapper.Launch;
 import net.minecraftforge.fml.common.FMLContainerHolder;
 import net.minecraftforge.fml.common.ModContainer;
 
 import java.awt.image.BufferedImage;
-import java.io.File;
 import java.io.IOException;
 import java.util.Set;
 
@@ -24,7 +22,7 @@ public class InternalResourcePack extends FolderResourcePack implements FMLConta
     private final ModContainer mc;
 
     public InternalResourcePack(ModContainer mc) {
-        super(new File(Launch.minecraftHome, "assetmover"));
+        super(AssetMover.PACK.toFile());
         this.mc = mc;
     }
 
@@ -40,13 +38,7 @@ public class InternalResourcePack extends FolderResourcePack implements FMLConta
 
     @Override
     public Set<String> getResourceDomains() {
-        try {
-            /** Ensures that another mod doesn't run {@link AssetMoverHelper#haltAndFlush} too early. */
-            AssetMoverAPI.validateLoadingState();
-        } catch (RuntimeException e) {
-            /** Called by {@link net.minecraftforge.fml.client.FMLClientHandler#beginMinecraftLoading}. */
-            AssetMoverHelper.haltAndFlush();
-        }
+        AssetMover.moveOnce();
         return super.getResourceDomains();
     }
 

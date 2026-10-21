@@ -4,7 +4,7 @@
 
 ### Features:
 
-1. Downloading Minecraft assets, CurseForge mods and jars from specified URLs.
+1. Downloading assets from Minecraft (Java and Bedrock), CurseForge, Modrinth, GitHub, Maven repositories and URLs.
 2. Locating these in `.minecraft/assetmover` folder resource pack that is hidden in-game.
 3. Dev environment compatibility.
 
@@ -20,8 +20,19 @@ repositories {
 }
 
 dependencies {
-    compile 'com.cleanroommc:assetmover:2.5'
+    implementation 'com.cleanroommc:assetmover:3.0.0'
 }
 ```
 
-2. Use `AssetMoverAPI`. Make sure you use these methods during `FMLConstructionEvent` or before it. Any later and it would be too late.
+2. Register a listener on `MinecraftForge.EVENT_BUS` no later than `FMLConstructionEvent`, and queue assets through `MoveAssetEvent`:
+
+```java
+@SubscribeEvent
+public void onMoveAssets(MoveAssetEvent event) {
+    AssetMoverAPI api = event.getAssetMover();
+    api.fromJava("1.20.1")
+        .moveAs("assets/minecraft/textures/block/dirt.png", "assets/mymod/textures/block/dirt.png");
+    api.fromModSite(ModSite.CURSEFORGE, "238222", "4593548")
+        .move("assets/jei/lang/en_us.lang", "assets/jei/lang/de_de.lang");
+}
+```

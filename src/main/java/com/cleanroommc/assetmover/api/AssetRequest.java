@@ -5,6 +5,7 @@
 
 package com.cleanroommc.assetmover.api;
 
+import java.util.Collection;
 import java.util.Map;
 
 /**
@@ -16,19 +17,24 @@ import java.util.Map;
 public interface AssetRequest {
 
     /**
-     * Moves an asset, keeping its path.
+     * Moves assets, keeping their paths.
      */
-    AssetRequest move(String path);
+    AssetRequest move(String... paths);
 
     /**
-     * Moves an asset from {@code source} (path within the source) to {@code destination} (path within the pack).
+     * Moves assets, keeping their paths.
      */
-    AssetRequest move(String source, String destination);
+    AssetRequest move(Collection<String> paths);
 
     /**
      * Moves every {@code source -> destination} pair of the given map.
      */
-    AssetRequest moveAll(Map<String, String> assets);
+    AssetRequest move(Map<String, String> assets);
+
+    /**
+     * Moves an asset from {@code source} (path within the source) to {@code destination} (path within the pack).
+     */
+    AssetRequest moveAs(String source, String destination);
 
     /**
      * By default, an asset whose destination already exists is skipped, and a source nobody needs is never

@@ -19,25 +19,27 @@ import net.minecraftforge.fml.common.eventhandler.Event;
  * <b>Register your listener no later than {@code FMLConstructionEvent}</b> with
  * the constructor of your {@code @Mod} class being the other option.
  *
- * <pre>{@code
- * @Mod.EventHandler
+ * <pre>
+ * {@literal @}Mod.EventHandler
  * public void onConstruction(FMLConstructionEvent event) {
  *     MinecraftForge.EVENT_BUS.register(this);
  * }
  *
- * @SubscribeEvent
- * public void onMoveAssets(AssetMoveEvent event) {
- *     event.getAssetMover()
- *          .fromJava("1.20.1")
- *          .move("assets/minecraft/textures/block/dirt.png", "assets/mymod/textures/block/dirt.png");
+ * {@literal @}SubscribeEvent
+ * public void onMoveAssets(MoveAssetEvent event) {
+ *     AssetMoverAPI api = event.getAssetMover();
+ *     api.fromJava("1.20.1")
+ *         .moveAs("assets/minecraft/textures/block/dirt.png", "assets/mymod/textures/block/dirt.png");
+ *     api.fromModSite(ModSite.MODRINTH, "jei", "AAAAAAAA")
+ *         .move("assets/jei/textures/gui/icons/recipe_transfer.png");
  * }
- * }</pre>
+ * </pre>
  */
-public class AssetMoveEvent extends Event {
+public class MoveAssetEvent extends Event {
 
     private final AssetMoverAPI assetMover;
 
-    public AssetMoveEvent(AssetMoverAPI assetMover) {
+    public MoveAssetEvent(AssetMoverAPI assetMover) {
         this.assetMover = assetMover;
     }
 
