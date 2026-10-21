@@ -18,21 +18,30 @@ public interface AssetRequest {
 
     /**
      * Moves assets, keeping their paths.
+     *
+     * @param paths paths within the source
      */
     AssetRequest move(String... paths);
 
     /**
      * Moves assets, keeping their paths.
+     *
+     * @param paths paths within the source
      */
     AssetRequest move(Collection<String> paths);
 
     /**
      * Moves every {@code source -> destination} pair of the given map.
+     *
+     * @param assets paths within the source mapped to paths within the pack
      */
     AssetRequest move(Map<String, String> assets);
 
     /**
      * Moves an asset from {@code source} (path within the source) to {@code destination} (path within the pack).
+     *
+     * @param source the path within the source
+     * @param destination the path within the pack
      */
     AssetRequest moveAs(String source, String destination);
 
@@ -46,14 +55,19 @@ public interface AssetRequest {
      * The hash the downloaded file has to have. Nothing is moved out of a file that fails it.
      * The algorithm is taken from the length of the hash.
      * i.e. MD5, SHA-1, SHA-256 and SHA-512.
-     * <p>Two requests naming the same file have to agree on its checksum. Not applicable to
+     * <p>Each request checks the file against its own checksum. Not applicable to
      * {@link AssetMoverAPI#fromJava(String)}, whose assets are always verified against Mojang's own hashes.
+     *
+     * @param checksum the expected hash, in hexadecimal
      */
     AssetRequest verify(String checksum);
 
     /**
      * {@link #verify(String)} with the algorithm explicitly stated.
      * e.g. {@code verify("SHA-256", "...")}.
+     *
+     * @param algorithm a {@link java.security.MessageDigest} algorithm name
+     * @param checksum the expected hash, in hexadecimal
      */
     AssetRequest verify(String algorithm, String checksum);
 

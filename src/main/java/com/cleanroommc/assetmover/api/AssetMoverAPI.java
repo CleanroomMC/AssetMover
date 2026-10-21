@@ -17,6 +17,8 @@ public interface AssetMoverAPI {
      * Assets of a Minecraft: Java Edition version, e.g. {@code "1.20.1"}.
      * <p>Sources the local launcher installation when possible, falls back to Mojang's servers.
      * Both the asset index ({@code assets/...}) and the client jar are searched, in that order.
+     *
+     * @param version the version id as the launcher names it
      */
     AssetRequest fromJava(String version);
 
@@ -24,11 +26,17 @@ public interface AssetMoverAPI {
      * Assets of a Minecraft: Bedrock Edition version, e.g. {@code "1.21.0.3"}.
      * Taken from Mojang's <a href="https://github.com/Mojang/bedrock-samples">bedrock-samples</a> repository.
      * <p>Paths are relative to the repository root, e.g. {@code "resource_pack/textures/blocks/dirt.png"}.
+     *
+     * @param version the version, which names the {@code v<version>} tag of the repository
      */
     AssetRequest fromBedrock(String version);
 
     /**
      * A file hosted on a mod site, see {@link ModSite} for what the ids are.
+     *
+     * @param site the site hosting the file
+     * @param projectId the id of the project on that site
+     * @param fileId the id of the file within the project
      */
     AssetRequest fromModSite(ModSite site, String projectId, String fileId);
 
@@ -38,13 +46,16 @@ public interface AssetMoverAPI {
      * <p>Forges build these archives on demand and do not promise the same bytes each time, so
      * {@link AssetRequest#verify(String)} may start failing for no fault of the repository.
      *
+     * @param host the forge hosting the repository
      * @param repository the path of the repository on the host, e.g. {@code owner/name} or {@code group/subgroup/name}
+     * @param ref        a branch, tag or commit
      */
     AssetRequest fromGit(GitHost host, String repository, String ref);
 
     /**
      * An archive attached to a release.
      *
+     * @param host the forge hosting the repository
      * @param repository the path of the repository on the host, e.g. {@code owner/name}
      * @param tag        the tag the release was made from
      * @param fileName   the name of the attached file, e.g. {@code "mymod-1.0.0.jar"}
@@ -61,16 +72,23 @@ public interface AssetMoverAPI {
 
     /**
      * An artifact from Maven Central, see {@link #fromMaven(String, String)}.
+     *
+     * @param coordinate {@code group:artifact:version[:classifier][@extension]}
      */
     AssetRequest fromMavenCentral(String coordinate);
 
     /**
      * Any zip/jar reachable over http(s). If the archive has a single root folder, paths may omit it.
+     *
+     * @param archiveUrl the url of the zip or jar
      */
     AssetRequest fromUrl(String archiveUrl);
 
     /**
      * A single file reachable over http(s), written straight to {@code destination}.
+     *
+     * @param fileUrl the url of the file
+     * @param destination the path within the pack
      */
     SingleAssetRequest fromUrlFile(String fileUrl, String destination);
 

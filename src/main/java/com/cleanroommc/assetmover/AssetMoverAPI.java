@@ -42,6 +42,8 @@ public final class AssetMoverAPI {
     /**
      * Queues assets from a Minecraft version.
      *
+     * @param version the Minecraft version
+     * @param assets paths within the source mapped to paths within the pack
      * @deprecated use {@link com.cleanroommc.assetmover.api.AssetMoverAPI#fromJava(String)}
      */
     @Deprecated
@@ -53,6 +55,9 @@ public final class AssetMoverAPI {
     /**
      * Queues assets from a CurseForge file.
      *
+     * @param projectId the CurseForge project id
+     * @param fileId the CurseForge file id
+     * @param assets paths within the source mapped to paths within the pack
      * @deprecated use {@link com.cleanroommc.assetmover.api.AssetMoverAPI#fromModSite(ModSite, String, String)}
      */
     @Deprecated
@@ -64,6 +69,8 @@ public final class AssetMoverAPI {
     /**
      * Queues assets from an archive url.
      *
+     * @param url the url of the archive
+     * @param assets paths within the source mapped to paths within the pack
      * @deprecated use {@link com.cleanroommc.assetmover.api.AssetMoverAPI#fromUrl(String)}
      */
     @Deprecated
@@ -75,6 +82,8 @@ public final class AssetMoverAPI {
     /**
      * Queues assets from an archive url.
      *
+     * @param url the url of the archive
+     * @param assets paths within the source mapped to paths within the pack
      * @deprecated use {@link com.cleanroommc.assetmover.api.AssetMoverAPI#fromUrl(String)}
      */
     @Deprecated

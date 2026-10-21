@@ -32,6 +32,8 @@ public interface GitHost {
 
     /**
      * A GitLab instance, e.g. {@code gitlab("https://git.example.com")}.
+     *
+     * @param url the root url of the instance
      */
     static GitHost gitlab(String url) {
         return AssetMoverHelper.gitlab(url);
@@ -39,6 +41,8 @@ public interface GitHost {
 
     /**
      * A Gitea or Forgejo instance, e.g. {@code gitea("https://git.example.com")}.
+     *
+     * @param url the root url of the instance
      */
     static GitHost gitea(String url) {
         return AssetMoverHelper.gitea(url);
@@ -46,11 +50,18 @@ public interface GitHost {
 
     /**
      * The url of a zip of the repository at a branch, tag or commit.
+     *
+     * @param repository the path of the repository on the host
+     * @param ref a branch, tag or commit
      */
     String archiveUrl(String repository, String ref) throws IOException;
 
     /**
      * The url of a file attached to a release. Called off the main thread.
+     *
+     * @param repository the path of the repository on the host
+     * @param tag the tag the release was made from
+     * @param fileName the name of the attached file
      */
     String releaseUrl(String repository, String tag, String fileName) throws IOException;
 

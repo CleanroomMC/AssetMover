@@ -20,12 +20,17 @@ public interface SingleAssetRequest {
      * The hash the file has to have. A file that fails it never reaches the resource pack. The algorithm is
      * taken from the length of the hash.
      * i.e. MD5, SHA-1, SHA-256 and SHA-512.
+     *
+     * @param checksum the expected hash, in hexadecimal
      */
     SingleAssetRequest verify(String checksum);
 
     /**
      * {@link #verify(String)} with the algorithm explicitly stated.
      * e.g. {@code verify("SHA-256", "...")}.
+     *
+     * @param algorithm a {@link java.security.MessageDigest} algorithm name
+     * @param checksum the expected hash, in hexadecimal
      */
     SingleAssetRequest verify(String algorithm, String checksum);
 

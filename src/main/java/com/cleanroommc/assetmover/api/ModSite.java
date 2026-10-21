@@ -30,6 +30,9 @@ public interface ModSite {
 
     /**
      * Resolves the download url of a file. Called off the main thread.
+     *
+     * @param projectId the id of the project on the site
+     * @param fileId the id of the file within the project
      */
     String downloadUrl(String projectId, String fileId) throws IOException;
 
