@@ -6,6 +6,7 @@
 package com.cleanroommc.assetmover;
 
 import com.google.common.eventbus.EventBus;
+
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.DummyModContainer;
 import net.minecraftforge.fml.common.LoadController;

@@ -6,6 +6,7 @@
 package com.cleanroommc.assetmover;
 
 import com.cleanroommc.assetmover.api.GitHost;
+
 import com.google.common.io.BaseEncoding;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -35,13 +36,18 @@ public final class AssetMoverHelper {
 
     private static final String USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36 Edg/107.0.1418.42";
 
+    private AssetMoverHelper() { }
+
     public static String curseForge(String projectId, String fileId) {
         String artifact = "curse-" + projectId;
-        return "https://curse.cleanroommc.com/curse/maven/" + artifact + "/" + fileId + "/" + artifact + "-" + fileId + ".jar";
+        return "https://curse.cleanroommc.com/curse/maven/" + artifact + "/" + fileId + "/" + artifact + "-" + fileId +
+            ".jar";
     }
 
     public static String modrinth(String projectId, String versionId) throws IOException {
-        JsonArray files = json("https://api.modrinth.com/v2/project/" + projectId + "/version/" + versionId).getAsJsonArray("files");
+        JsonArray files = json(
+            "https://api.modrinth.com/v2/project/" + projectId + "/version/" + versionId
+        ).getAsJsonArray("files");
         for (JsonElement file : files) {
             if (file.getAsJsonObject().get("primary").getAsBoolean()) {
                 return file.getAsJsonObject().get("url").getAsString();
@@ -74,14 +80,17 @@ public final class AssetMoverHelper {
             @Override
             public String archiveUrl(String repository, String ref) {
                 String name = repository.substring(repository.lastIndexOf('/') + 1);
-                return host + "/" + repository + "/-/archive/" + ref + "/" + name + "-" + ref.replace('/', '-') + ".zip";
+                return host + "/" + repository + "/-/archive/" + ref + "/" + name + "-" + ref.replace('/', '-') +
+                    ".zip";
             }
 
             // GitLab release files are links rather than uploads, so they are looked up by name
             @Override
             public String releaseUrl(String repository, String tag, String fileName) throws IOException {
-                JsonObject release = json(host + "/api/v4/projects/" + URLEncoder.encode(repository, "UTF-8")
-                    + "/releases/" + URLEncoder.encode(tag, "UTF-8"));
+                JsonObject release = json(
+                    host + "/api/v4/projects/" + URLEncoder.encode(repository, "UTF-8") + "/releases/" +
+                        URLEncoder.encode(tag, "UTF-8")
+                );
                 for (JsonElement element : release.getAsJsonObject("assets").getAsJsonArray("links")) {
                     JsonObject link = element.getAsJsonObject();
                     if (fileName.equals(link.get("name").getAsString())) {
@@ -171,7 +180,5 @@ public final class AssetMoverHelper {
         connection.setRequestProperty("User-Agent", USER_AGENT);
         return connection.getInputStream();
     }
-
-    private AssetMoverHelper() { }
 
 }

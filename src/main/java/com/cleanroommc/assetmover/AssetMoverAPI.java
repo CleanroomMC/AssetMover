@@ -7,11 +7,13 @@ package com.cleanroommc.assetmover;
 
 import com.cleanroommc.assetmover.api.ModSite;
 import com.cleanroommc.assetmover.api.MoveAssetEvent;
+
+import org.jetbrains.annotations.ApiStatus;
+
 import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.LoaderState;
 import net.minecraftforge.fml.common.ModContainer;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import org.jetbrains.annotations.ApiStatus;
 
 import java.net.URL;
 import java.util.ArrayList;
@@ -34,6 +36,8 @@ public final class AssetMoverAPI {
     private static final List<Consumer<com.cleanroommc.assetmover.api.AssetMoverAPI>> LEGACY_REQUESTS = new ArrayList<>();
 
     private static boolean eventFired;
+
+    private AssetMoverAPI() { }
 
     /**
      * Queues assets from a Minecraft version.
@@ -88,7 +92,9 @@ public final class AssetMoverAPI {
 
     private static void validateLoadingState() {
         if (Loader.instance().hasReachedState(LoaderState.PREINITIALIZATION)) {
-            throw new RuntimeException("AssetMover operations can only be performed during FMLConstructionEvent or earlier!");
+            throw new RuntimeException(
+                "AssetMover operations can only be performed during FMLConstructionEvent or earlier!"
+            );
         }
     }
 
@@ -96,16 +102,14 @@ public final class AssetMoverAPI {
         if (eventFired) {
             ModContainer mod = Loader.instance().activeModContainer();
             AssetMover.LOGGER.error(
-                "{} called the 2.x AssetMover API after MoveAssetEvent fired, so its assets are not moved this launch. "
-                    + "Update it to AssetMover 3.x and queue assets in MoveAssetEvent.",
-                mod == null ? "A mod" : mod.getModId(),
-                new Throwable("Caller"));
+                "{} called the 2.x AssetMover API after MoveAssetEvent fired, so its assets are not moved this launch. " +
+                    "Update it to AssetMover 3.x and queue assets in MoveAssetEvent.",
+                mod == null ? "A mod" : mod.getModId(), new Throwable("Caller")
+            );
             return;
         }
         validateLoadingState();
         LEGACY_REQUESTS.add(request);
     }
-
-    private AssetMoverAPI() { }
 
 }

@@ -6,6 +6,7 @@
 package com.cleanroommc.assetmover;
 
 import com.google.gson.JsonObject;
+
 import net.minecraft.client.renderer.texture.TextureUtil;
 import net.minecraft.client.resources.FolderResourcePack;
 import net.minecraft.client.resources.data.IMetadataSection;
@@ -43,7 +44,8 @@ public class InternalResourcePack extends FolderResourcePack implements FMLConta
     }
 
     @Override
-    public <T extends IMetadataSection> T getPackMetadata(MetadataSerializer metadataSerializer, String metadataSectionName) {
+    public <T extends IMetadataSection> T getPackMetadata(
+        MetadataSerializer metadataSerializer, String metadataSectionName) {
         JsonObject metadata = new JsonObject();
         JsonObject packObj = new JsonObject();
         metadata.add("pack", packObj);

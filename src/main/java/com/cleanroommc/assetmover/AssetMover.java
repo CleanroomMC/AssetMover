@@ -11,14 +11,16 @@ import com.cleanroommc.assetmover.api.GitHost;
 import com.cleanroommc.assetmover.api.ModSite;
 import com.cleanroommc.assetmover.api.MoveAssetEvent;
 import com.cleanroommc.assetmover.api.SingleAssetRequest;
+
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import net.minecraft.launchwrapper.Launch;
-import net.minecraftforge.common.MinecraftForge;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jspecify.annotations.Nullable;
+
+import net.minecraft.launchwrapper.Launch;
+import net.minecraftforge.common.MinecraftForge;
 
 import java.io.IOException;
 import java.nio.file.FileSystem;
@@ -54,6 +56,7 @@ final class AssetMover implements AssetMoverAPI {
 
     private final List<Request> requests = new ArrayList<>();
     private final Map<List<?>, CompletableFuture<?>> shared = new ConcurrentHashMap<>();
+
     private ExecutorService executor;
 
     /**
@@ -67,6 +70,35 @@ final class AssetMover implements AssetMoverAPI {
         AssetMover mover = new AssetMover();
         MinecraftForge.EVENT_BUS.post(new MoveAssetEvent(mover));
         mover.run();
+    }
+
+    private static void extract(Path archive, Map<String, String> assets, Object source) throws IOException {
+        try (FileSystem fs = FileSystems.newFileSystem(archive, (ClassLoader) null)) {
+            Path root = fs.getPath("/");
+            Path folder = singleFolder(root);
+            for (Map.Entry<String, String> asset : assets.entrySet()) {
+                Path from = root.resolve(asset.getKey());
+                if (!Files.exists(from) && folder != null) {
+                    from = folder.resolve(asset.getKey());
+                }
+                if (Files.exists(from)) {
+                    AssetMoverHelper.copy(from, PACK.resolve(asset.getValue()));
+                } else {
+                    LOGGER.error("Could not find '{}' in {}", asset.getKey(), source);
+                }
+            }
+        }
+    }
+
+    /**
+     * Archives such as GitHub's wrap everything in one folder, which paths are allowed to omit.
+     */
+    private static @Nullable
+    Path singleFolder(Path root) throws IOException {
+        try (Stream<Path> children = Files.list(root)) {
+            List<Path> first = children.limit(2).collect(Collectors.toList());
+            return first.size() == 1 && Files.isDirectory(first.get(0)) ? first.get(0) : null;
+        }
     }
 
     @Override
@@ -91,7 +123,9 @@ final class AssetMover implements AssetMoverAPI {
 
     @Override
     public AssetRequest fromGitRelease(GitHost host, String repository, String tag, String fileName) {
-        return new Archive(Arrays.asList(host, repository, tag, fileName), () -> host.releaseUrl(repository, tag, fileName));
+        return new Archive(
+            Arrays.asList(host, repository, tag, fileName), () -> host.releaseUrl(repository, tag, fileName)
+        );
     }
 
     @Override
@@ -108,8 +142,10 @@ final class AssetMover implements AssetMoverAPI {
         }
         String classifier = parts.length == 4 ? "-" + parts[3] : "";
         String repository = repositoryUrl.endsWith("/") ? repositoryUrl : repositoryUrl + "/";
-        return fromUrl(repository + parts[0].replace('.', '/') + "/" + parts[1] + "/" + parts[2] + "/"
-            + parts[1] + "-" + parts[2] + classifier + "." + extension);
+        return fromUrl(
+            repository + parts[0].replace('.', '/') + "/" + parts[1] + "/" + parts[2] + "/" + parts[1] + "-" +
+                parts[2] + classifier + "." + extension
+        );
     }
 
     @Override
@@ -132,14 +168,16 @@ final class AssetMover implements AssetMoverAPI {
             return;
         }
         long start = System.currentTimeMillis();
-        executor = Executors.newFixedThreadPool(THREADS, new ThreadFactoryBuilder().setNameFormat("AssetMover #%d").setDaemon(true).build());
+        executor = Executors.newFixedThreadPool(
+            THREADS, new ThreadFactoryBuilder().setNameFormat("AssetMover #%d").setDaemon(true).build()
+        );
         try {
-            CompletableFuture.allOf(requests.stream()
-                .map(request -> request.start().exceptionally(t -> {
+            CompletableFuture.allOf(
+                requests.stream().map(request -> request.start().exceptionally(t -> {
                     LOGGER.error("Could not move assets from {}", request, t);
                     return null;
-                }))
-                .toArray(CompletableFuture[]::new)).join();
+                })).toArray(CompletableFuture[]::new)
+            ).join();
         } finally {
             executor.shutdownNow();
         }
@@ -147,13 +185,16 @@ final class AssetMover implements AssetMoverAPI {
     }
 
     private <T> CompletableFuture<T> async(Callable<T> task) {
-        return CompletableFuture.supplyAsync(() -> {
-            try {
-                return task.call();
-            } catch (Exception e) {
-                throw new CompletionException(e);
-            }
-        }, executor);
+        return CompletableFuture.supplyAsync(
+            () -> {
+                try {
+                    return task.call();
+                } catch (Exception e) {
+                    throw new CompletionException(e);
+                }
+            },
+            executor
+        );
     }
 
     /**
@@ -162,34 +203,6 @@ final class AssetMover implements AssetMoverAPI {
     @SuppressWarnings("unchecked")
     private <T> CompletableFuture<T> shared(List<?> key, Callable<T> task) {
         return (CompletableFuture<T>) shared.computeIfAbsent(key, k -> async(task));
-    }
-
-    private static void extract(Path archive, Map<String, String> assets, Object source) throws IOException {
-        try (FileSystem fs = FileSystems.newFileSystem(archive, (ClassLoader) null)) {
-            Path root = fs.getPath("/");
-            Path folder = singleFolder(root);
-            for (Map.Entry<String, String> asset : assets.entrySet()) {
-                Path from = root.resolve(asset.getKey());
-                if (!Files.exists(from) && folder != null) {
-                    from = folder.resolve(asset.getKey());
-                }
-                if (Files.exists(from)) {
-                    AssetMoverHelper.copy(from, PACK.resolve(asset.getValue()));
-                } else {
-                    LOGGER.error("Could not find '{}' in {}", asset.getKey(), source);
-                }
-            }
-        }
-    }
-
-    /**
-     * Archives such as GitHub's wrap everything in one folder, which paths are allowed to omit.
-     */
-    private static @Nullable Path singleFolder(Path root) throws IOException {
-        try (Stream<Path> children = Files.list(root)) {
-            List<Path> first = children.limit(2).collect(Collectors.toList());
-            return first.size() == 1 && Files.isDirectory(first.get(0)) ? first.get(0) : null;
-        }
     }
 
     private abstract class Request {
@@ -281,17 +294,17 @@ final class AssetMover implements AssetMoverAPI {
         }
 
         @Override
+        public String toString() {
+            return source.toString();
+        }
+
+        @Override
         CompletableFuture<?> start(Map<String, String> pending) {
             return shared(source, () -> AssetMoverHelper.download(url.call())).thenCompose(file -> async(() -> {
                 AssetMoverHelper.verify(file, algorithm, checksum);
                 extract(file, pending, this);
                 return null;
             }));
-        }
-
-        @Override
-        public String toString() {
-            return source.toString();
         }
 
     }
@@ -303,6 +316,11 @@ final class AssetMover implements AssetMoverAPI {
 
         JavaAssets(String version) {
             this.version = version;
+        }
+
+        @Override
+        public String toString() {
+            return "Minecraft " + version;
         }
 
         @Override
@@ -326,10 +344,12 @@ final class AssetMover implements AssetMoverAPI {
                     }
                 });
                 if (!fromJar.isEmpty()) {
-                    tasks.add(clientJar(json).thenCompose(jar -> async(() -> {
-                        extract(jar, fromJar, this);
-                        return null;
-                    })));
+                    tasks.add(
+                        clientJar(json).thenCompose(jar -> async(() -> {
+                            extract(jar, fromJar, this);
+                            return null;
+                        }))
+                    );
                 }
                 return CompletableFuture.allOf(tasks.toArray(new CompletableFuture[0]));
             }));
@@ -340,15 +360,17 @@ final class AssetMover implements AssetMoverAPI {
             if (Files.exists(local)) {
                 return shared(Arrays.asList("java", version), () -> AssetMoverHelper.json(local));
             }
-            return shared(Arrays.asList("manifest"), () -> AssetMoverHelper.json(VERSION_MANIFEST))
-                .thenCompose(manifest -> shared(Arrays.asList("java", version), () -> {
-                    for (JsonElement entry : manifest.getAsJsonArray("versions")) {
-                        if (version.equals(entry.getAsJsonObject().get("id").getAsString())) {
-                            return AssetMoverHelper.json(entry.getAsJsonObject().get("url").getAsString());
-                        }
+            return shared(
+                Arrays.asList("manifest"),
+                () -> AssetMoverHelper.json(VERSION_MANIFEST)
+            ).thenCompose(manifest -> shared(Arrays.asList("java", version), () -> {
+                for (JsonElement entry : manifest.getAsJsonArray("versions")) {
+                    if (version.equals(entry.getAsJsonObject().get("id").getAsString())) {
+                        return AssetMoverHelper.json(entry.getAsJsonObject().get("url").getAsString());
                     }
-                    throw new IOException("Minecraft " + version + " is not in the version manifest");
-                }));
+                }
+                throw new IOException("Minecraft " + version + " is not in the version manifest");
+            }));
         }
 
         private CompletableFuture<JsonObject> assetIndex(JsonObject json) {
@@ -375,17 +397,10 @@ final class AssetMover implements AssetMoverAPI {
             String sha1 = client.get("sha1").getAsString();
             Path local = minecraft.resolve("versions").resolve(version).resolve(version + ".jar");
             return shared(Arrays.asList("client", version), () -> {
-                Path jar = Files.exists(local) && AssetMoverHelper.matches(local, "SHA-1", sha1)
-                    ? local
-                    : AssetMoverHelper.download(client.get("url").getAsString());
+                Path jar = Files.exists(local) && AssetMoverHelper.matches(local, "SHA-1", sha1) ? local : AssetMoverHelper.download(client.get("url").getAsString());
                 AssetMoverHelper.verify(jar, "SHA-1", sha1);
                 return jar;
             });
-        }
-
-        @Override
-        public String toString() {
-            return "Minecraft " + version;
         }
 
     }
@@ -418,6 +433,11 @@ final class AssetMover implements AssetMoverAPI {
         }
 
         @Override
+        public String toString() {
+            return url;
+        }
+
+        @Override
         CompletableFuture<?> start() {
             Path to = PACK.resolve(destination);
             if (!overwrite && Files.exists(to)) {
@@ -429,11 +449,6 @@ final class AssetMover implements AssetMoverAPI {
                 AssetMoverHelper.copy(file, to);
                 return null;
             });
-        }
-
-        @Override
-        public String toString() {
-            return url;
         }
 
     }
