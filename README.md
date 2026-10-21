@@ -49,3 +49,5 @@ Each download gives up after 30 seconds without a connection or without data. Ov
 | `cleanroom.asset-mover.git.timeout`       | `fromGit`, `fromGitRelease`             |
 | `cleanroom.asset-mover.maven.timeout`     | `fromMaven`, `fromMavenCentral`         |
 | `cleanroom.asset-mover.url.timeout`       | `fromUrl`, `fromUrlFile`                |
+
+Downloads run on `max(4, cores * 2)` threads, which `cleanroom.asset-mover.threads` overrides.

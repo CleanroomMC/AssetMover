@@ -21,6 +21,8 @@ import org.jspecify.annotations.Nullable;
 
 import net.minecraft.launchwrapper.Launch;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.fml.common.ProgressManager;
+import net.minecraftforge.fml.common.ProgressManager.ProgressBar;
 
 import java.io.IOException;
 import java.nio.file.FileSystem;
@@ -33,12 +35,14 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -50,7 +54,9 @@ final class AssetMover implements AssetMoverAPI {
     private static final String VERSION_MANIFEST = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json";
     private static final String RESOURCES = "https://resources.download.minecraft.net/";
     private static final String MAVEN_CENTRAL = "https://repo.maven.apache.org/maven2";
-    private static final int THREADS = 8;
+    private static final int THREADS = Integer.getInteger(
+        "cleanroom.asset-mover.threads", Math.max(4, Runtime.getRuntime().availableProcessors() * 2)
+    );
 
     private static boolean moved;
 
@@ -167,7 +173,7 @@ final class AssetMover implements AssetMoverAPI {
         return new SingleFile(fileUrl, destination);
     }
 
-    private void run() {
+    void run() {
         if (requests.isEmpty()) {
             return;
         }
@@ -175,13 +181,26 @@ final class AssetMover implements AssetMoverAPI {
         executor = Executors.newFixedThreadPool(
             THREADS, new ThreadFactoryBuilder().setNameFormat("AssetMover #%d").setDaemon(true).build()
         );
-        try {
-            CompletableFuture.allOf(
-                requests.stream().map(request -> request.start().exceptionally(t -> {
+        BlockingQueue<Request> done = new LinkedBlockingQueue<>();
+        for (Request request : requests) {
+            request.start().whenComplete((result, t) -> {
+                if (t != null) {
                     LOGGER.error("Could not move assets from {}", request, t);
-                    return null;
-                })).toArray(CompletableFuture[]::new)
-            ).join();
+                }
+                done.add(request);
+            });
+        }
+        // The splash screen renders progress bars from another thread, so they are only stepped from this one
+        ProgressBar bar = ProgressManager.push("AssetMover", requests.size());
+        try {
+            for (int i = 1; i <= requests.size(); i++) {
+                Request request = done.take();
+                bar.step(request.toString());
+                LOGGER.info("Finished {} ({}/{})", request, i, requests.size());
+            }
+            ProgressManager.pop(bar);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         } finally {
             executor.shutdownNow();
         }
