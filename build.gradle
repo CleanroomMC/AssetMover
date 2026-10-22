@@ -13,7 +13,9 @@ conventions {
 }
 
 tokenEnvoy {
-    set 'VERSION', project.version
+    main {
+        set 'VERSION', project.version
+    }
 }
 
 minecraft {
