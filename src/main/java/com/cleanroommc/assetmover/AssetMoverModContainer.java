@@ -6,11 +6,13 @@
 package com.cleanroommc.assetmover;
 
 import com.google.common.eventbus.EventBus;
+import com.google.common.eventbus.Subscribe;
 
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.DummyModContainer;
 import net.minecraftforge.fml.common.LoadController;
 import net.minecraftforge.fml.common.ModMetadata;
+import net.minecraftforge.fml.common.event.FMLConstructionEvent;
 
 import java.util.Collections;
 
@@ -26,7 +28,7 @@ public class AssetMoverModContainer extends DummyModContainer {
         metadata.url = "https://github.com/CleanroomMC/AssetMover";
         metadata.authorList = Collections.singletonList("CleanroomMC");
         metadata.credits = "Rongmario";
-        metadata.logoFile = "/asset_mover_icon.png";
+        metadata.logoFile = "/assetmover/icon.png";
     }
 
     @Override
@@ -37,8 +39,12 @@ public class AssetMoverModContainer extends DummyModContainer {
     @Override
     public boolean registerBus(EventBus bus, LoadController controller) {
         bus.register(this);
-        MinecraftForge.EVENT_BUS.register(AssetMoverAPI.class);
         return true;
+    }
+
+    @Subscribe
+    public void construct(FMLConstructionEvent event) {
+        MinecraftForge.EVENT_BUS.register(AssetMoverAPI.class);
     }
 
 }
