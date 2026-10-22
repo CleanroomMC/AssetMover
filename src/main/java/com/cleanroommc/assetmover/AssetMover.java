@@ -115,7 +115,7 @@ final class AssetMover implements AssetMoverAPI {
     @Override
     public AssetRequest fromBedrock(String version) {
         return new Archive(
-            "bedrock", Arrays.asList("bedrock", version),
+            "bedrock", Arrays.asList("bedrock", version), "Minecraft Bedrock " + version,
             () -> GitHost.GITHUB.archiveUrl("Mojang/bedrock-samples", "v" + version)
         );
     }
@@ -123,19 +123,24 @@ final class AssetMover implements AssetMoverAPI {
     @Override
     public AssetRequest fromModSite(ModSite site, String projectId, String fileId) {
         return new Archive(
-            "mod-site", Arrays.asList(site, projectId, fileId), () -> site.downloadUrl(projectId, fileId)
+            "mod-site", Arrays.asList(site, projectId, fileId), "mod site file " + projectId + "/" + fileId,
+            () -> site.downloadUrl(projectId, fileId)
         );
     }
 
     @Override
     public AssetRequest fromGit(GitHost host, String repository, String ref) {
-        return new Archive("git", Arrays.asList(host, repository, ref), () -> host.archiveUrl(repository, ref));
+        return new Archive(
+            "git", Arrays.asList(host, repository, ref), repository + "@" + ref,
+            () -> host.archiveUrl(repository, ref)
+        );
     }
 
     @Override
     public AssetRequest fromGitRelease(GitHost host, String repository, String tag, String fileName) {
         return new Archive(
-            "git", Arrays.asList(host, repository, tag, fileName), () -> host.releaseUrl(repository, tag, fileName)
+            "git", Arrays.asList(host, repository, tag, fileName), repository + "@" + tag + "/" + fileName,
+            () -> host.releaseUrl(repository, tag, fileName)
         );
     }
 
@@ -155,7 +160,7 @@ final class AssetMover implements AssetMoverAPI {
         String repository = repositoryUrl.endsWith("/") ? repositoryUrl : repositoryUrl + "/";
         String url = repository + parts[0].replace('.', '/') + "/" + parts[1] + "/" + parts[2] + "/" + parts[1] + "-" +
             parts[2] + classifier + "." + extension;
-        return new Archive("maven", Arrays.asList("url", url), () -> url);
+        return new Archive("maven", Arrays.asList("url", url), url, () -> url);
     }
 
     @Override
@@ -165,7 +170,7 @@ final class AssetMover implements AssetMoverAPI {
 
     @Override
     public AssetRequest fromUrl(String archiveUrl) {
-        return new Archive("url", Arrays.asList("url", archiveUrl), () -> archiveUrl);
+        return new Archive("url", Arrays.asList("url", archiveUrl), archiveUrl, () -> archiveUrl);
     }
 
     @Override
@@ -310,17 +315,19 @@ final class AssetMover implements AssetMoverAPI {
 
         private final String type;
         private final List<?> source;
+        private final String description;
         private final Callable<String> url;
 
-        Archive(String type, List<?> source, Callable<String> url) {
+        Archive(String type, List<?> source, String description, Callable<String> url) {
             this.type = type;
             this.source = source;
+            this.description = description;
             this.url = url;
         }
 
         @Override
         public String toString() {
-            return source.toString();
+            return description;
         }
 
         @Override
