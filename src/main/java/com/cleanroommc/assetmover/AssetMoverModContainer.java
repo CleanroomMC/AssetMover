@@ -5,6 +5,8 @@
 
 package com.cleanroommc.assetmover;
 
+import com.cleanroommc.assetmover.api.MoveAssetEvent;
+
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 
@@ -13,6 +15,7 @@ import net.minecraftforge.fml.common.DummyModContainer;
 import net.minecraftforge.fml.common.LoadController;
 import net.minecraftforge.fml.common.ModMetadata;
 import net.minecraftforge.fml.common.event.FMLConstructionEvent;
+import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 
 import java.util.Collections;
 
@@ -45,6 +48,13 @@ public class AssetMoverModContainer extends DummyModContainer {
     @Subscribe
     public void construct(FMLConstructionEvent event) {
         MinecraftForge.EVENT_BUS.register(AssetMoverAPI.class);
+    }
+
+    @Subscribe
+    public void preInit(FMLPreInitializationEvent event) {
+        if (event.getSide().isServer()) {
+            AssetMover.move(MoveAssetEvent.Server::new);
+        }
     }
 
 }
