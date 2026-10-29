@@ -43,6 +43,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -58,7 +59,7 @@ final class AssetMover implements AssetMoverAPI {
         "cleanroom.asset-mover.threads", Math.max(4, Runtime.getRuntime().availableProcessors() * 2)
     );
 
-    private static boolean moved;
+    private static boolean movedClientAssets;
 
     private final List<Request> requests = new ArrayList<>();
     private final Map<List<?>, CompletableFuture<?>> shared = new ConcurrentHashMap<>();
@@ -66,15 +67,22 @@ final class AssetMover implements AssetMoverAPI {
     private ExecutorService executor;
 
     /**
-     * Fires {@link MoveAssetEvent} and blocks until every queued asset is in place. Only the first call does anything.
+     * Only the first call does anything.
      */
-    static void moveOnce() {
-        if (moved) {
+    static void moveClientAssets() {
+        if (movedClientAssets) {
             return;
         }
-        moved = true;
+        movedClientAssets = true;
+        move(MoveAssetEvent.Client::new);
+    }
+
+    /**
+     * Fires the event and blocks until every queued asset is in place.
+     */
+    static void move(Function<AssetMoverAPI, MoveAssetEvent> event) {
         AssetMover mover = new AssetMover();
-        MinecraftForge.EVENT_BUS.post(new MoveAssetEvent(mover));
+        MinecraftForge.EVENT_BUS.post(event.apply(mover));
         mover.run();
     }
 

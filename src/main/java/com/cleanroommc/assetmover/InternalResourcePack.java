@@ -39,7 +39,7 @@ public class InternalResourcePack extends FolderResourcePack implements FMLConta
 
     @Override
     public Set<String> getResourceDomains() {
-        AssetMover.moveOnce();
+        AssetMover.moveClientAssets();
         return super.getResourceDomains();
     }
 

@@ -24,7 +24,7 @@ import java.util.function.Consumer;
 
 /**
  * The 2.x entry point. Each call is queued and replayed against {@link com.cleanroommc.assetmover.api.AssetMoverAPI}
- * when {@link MoveAssetEvent} fires.
+ * when {@link MoveAssetEvent.Client} fires. The dedicated server never runs them.
  *
  * @deprecated listen to {@link MoveAssetEvent} instead.
  */
@@ -93,7 +93,7 @@ public final class AssetMoverAPI {
 
     @ApiStatus.Internal
     @SubscribeEvent
-    public static void onMoveAssets(MoveAssetEvent event) {
+    public static void onMoveAssets(MoveAssetEvent.Client event) {
         eventFired = true;
         LEGACY_REQUESTS.forEach(request -> request.accept(event.getAssetMover()));
         LEGACY_REQUESTS.clear();
@@ -111,7 +111,7 @@ public final class AssetMoverAPI {
         if (eventFired) {
             ModContainer mod = Loader.instance().activeModContainer();
             AssetMover.LOGGER.error(
-                "{} called the 2.x AssetMover API after MoveAssetEvent fired, so its assets are not moved this launch. " +
+                "{} called the 2.x AssetMover API after MoveAssetEvent.Client fired, so its assets are not moved this launch. " +
                     "Update it to AssetMover 3.x and queue assets in MoveAssetEvent.",
                 mod == null ? "A mod" : mod.getModId(), new Throwable("Caller")
             );

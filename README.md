@@ -24,11 +24,11 @@ dependencies {
 }
 ```
 
-2. Register a listener on `MinecraftForge.EVENT_BUS` no later than `FMLConstructionEvent`, and queue assets through `MoveAssetEvent`:
+2. Register a listener on `MinecraftForge.EVENT_BUS` no later than `FMLConstructionEvent`, and queue assets through `MoveAssetEvent.Client`. Use `MoveAssetEvent.Server` for the dedicated server, which fires in pre-initialization, or `MoveAssetEvent` for both:
 
 ```java
 @SubscribeEvent
-public void onMoveAssets(MoveAssetEvent event) {
+public void onMoveAssets(MoveAssetEvent.Client event) {
     AssetMoverAPI api = event.getAssetMover();
     api.fromJava("1.20.1")
         .moveAs("assets/minecraft/textures/block/dirt.png", "assets/mymod/textures/block/dirt.png");
