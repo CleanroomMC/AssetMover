@@ -211,10 +211,10 @@ final class AssetMover implements AssetMoverAPI {
                 bar.step(request.toString());
                 LOGGER.info("Finished {} ({}/{})", request, i, requests.size());
             }
-            ProgressManager.pop(bar);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         } finally {
+            ProgressManager.pop(bar);
             executor.shutdownNow();
         }
         LOGGER.info("Moved assets in {} ms", System.currentTimeMillis() - start);
