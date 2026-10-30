@@ -24,6 +24,7 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.ProgressManager;
 import net.minecraftforge.fml.common.ProgressManager.ProgressBar;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
@@ -50,7 +51,7 @@ import java.util.stream.Stream;
 final class AssetMover implements AssetMoverAPI {
 
     static final Logger LOGGER = LogManager.getLogger("AssetMover");
-    static final Path PACK = Launch.minecraftHome.toPath().resolve("assetmover");
+    static final Path PACK = (Launch.minecraftHome == null ? new File(".") : Launch.minecraftHome).toPath().resolve("assetmover");
 
     private static final String VERSION_MANIFEST = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json";
     private static final String RESOURCES = "https://resources.download.minecraft.net/";
