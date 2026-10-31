@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.0.1 - 2026-10-31
+
+### Bug Fix
+
+- Null minecraft home for server side *[commit by [@Rongmario](https://github.com/Rongmario) in [4dd0cae](https://github.com/CleanroomMC/AssetMover/commit/4dd0cae4db10da3b03e609774290fd9ef89f70a3)]*
+
+**Full Changelog**: https://github.com/CleanroomMC/AssetMover/compare/3.0.0...3.0.1
+
 ## 3.0.0 - 2026-10-29
 
 > [!IMPORTANT]
